@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PlayerControls } from './controls.js';
+import { Physics } from './physics.js';
 
 export class Scene {
     constructor(container) {
@@ -22,8 +23,11 @@ export class Scene {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(this.renderer.domElement);
 
+        // Initialize physics
+        this.physics = new Physics(this.scene);
+
         // Initialize controls
-        this.controls = new PlayerControls(this.camera, this.renderer.domElement);
+        this.controls = new PlayerControls(this.camera, this.renderer.domElement, this.physics);
 
         // Add some basic lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
@@ -33,7 +37,12 @@ export class Scene {
         directionalLight.position.set(1, 1, 1);
         this.scene.add(directionalLight);
 
-        // Add a floor (temporary, will be replaced with proper level geometry)
+        // Create level geometry
+        this.createLevelGeometry();
+    }
+
+    createLevelGeometry() {
+        // Add a floor
         const floorGeometry = new THREE.PlaneGeometry(20, 20);
         const floorMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x808080,
@@ -44,32 +53,36 @@ export class Scene {
         floor.rotation.x = -Math.PI / 2;
         this.scene.add(floor);
 
-        // Add some walls (temporary, will be replaced with proper level geometry)
-        const wallGeometry = new THREE.BoxGeometry(1, 3, 20);
+        // Create walls
         const wallMaterial = new THREE.MeshStandardMaterial({
             color: 0x808080,
             roughness: 0.7,
             metalness: 0.3
         });
-        
-        // Create walls to form a corridor
+
+        // Side walls
+        const wallGeometry = new THREE.BoxGeometry(1, 3, 20);
         const wall1 = new THREE.Mesh(wallGeometry, wallMaterial);
         wall1.position.set(5, 1.5, 0);
         this.scene.add(wall1);
+        this.physics.addCollider(wall1);
 
         const wall2 = new THREE.Mesh(wallGeometry, wallMaterial);
         wall2.position.set(-5, 1.5, 0);
         this.scene.add(wall2);
+        this.physics.addCollider(wall2);
 
-        // Add end walls
+        // End walls
         const endWallGeometry = new THREE.BoxGeometry(11, 3, 1);
         const endWall1 = new THREE.Mesh(endWallGeometry, wallMaterial);
         endWall1.position.set(0, 1.5, 10);
         this.scene.add(endWall1);
+        this.physics.addCollider(endWall1);
 
         const endWall2 = new THREE.Mesh(endWallGeometry, wallMaterial);
         endWall2.position.set(0, 1.5, -10);
         this.scene.add(endWall2);
+        this.physics.addCollider(endWall2);
     }
 
     // Handle window resize

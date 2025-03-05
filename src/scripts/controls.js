@@ -2,9 +2,10 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import * as THREE from 'three';
 
 export class PlayerControls {
-    constructor(camera, domElement) {
+    constructor(camera, domElement, physics) {
         // Initialize PointerLock controls
         this.controls = new PointerLockControls(camera, domElement);
+        this.physics = physics;
         
         // Movement state
         this.moveForward = false;
@@ -98,14 +99,27 @@ export class PlayerControls {
             
             if (this.moveForward || this.moveBackward) {
                 this.velocity.z = -this.direction.z * actualMoveSpeed;
+            } else {
+                this.velocity.z = 0;
             }
+            
             if (this.moveLeft || this.moveRight) {
                 this.velocity.x = -this.direction.x * actualMoveSpeed;
+            } else {
+                this.velocity.x = 0;
             }
 
-            // Apply movement
-            this.controls.moveRight(-this.velocity.x);
-            this.controls.moveForward(-this.velocity.z);
+            // Get collision-adjusted movement
+            if (this.velocity.length() > 0) {
+                const adjustedVelocity = this.physics.getAdjustedMovement(
+                    this.controls.getObject().position,
+                    this.velocity
+                );
+
+                // Apply movement
+                this.controls.moveRight(-adjustedVelocity.x);
+                this.controls.moveForward(-adjustedVelocity.z);
+            }
         }
     }
 
