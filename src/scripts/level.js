@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 
 export class Level {
-    constructor(scene, physics) {
+    constructor(scene, physics, assetLoader) {
         this.scene = scene;
         this.physics = physics;
+        this.assetLoader = assetLoader;
         this.meshes = [];
     }
 
@@ -25,11 +26,14 @@ export class Level {
         console.log('Creating floor...');
         const floorGeometry = new THREE.PlaneGeometry(50, 50);
         const floorMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x808080,
+            map: this.assetLoader.getTexture('floor'),
             roughness: 0.8,
             metalness: 0.2,
-            side: THREE.DoubleSide // Make floor visible from both sides
+            side: THREE.DoubleSide
         });
+        floorMaterial.map.repeat.set(10, 10);
+        floorMaterial.map.wrapS = floorMaterial.map.wrapT = THREE.RepeatWrapping;
+        
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
@@ -41,11 +45,13 @@ export class Level {
     createOuterWalls() {
         console.log('Creating outer walls...');
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x808080,
+            map: this.assetLoader.getTexture('wall'),
             roughness: 0.7,
             metalness: 0.3,
-            side: THREE.DoubleSide // Make walls visible from both sides
+            side: THREE.DoubleSide
         });
+        wallMaterial.map.repeat.set(2, 1);
+        wallMaterial.map.wrapS = wallMaterial.map.wrapT = THREE.RepeatWrapping;
 
         // Create outer walls
         const walls = [
@@ -71,11 +77,13 @@ export class Level {
     createMaze() {
         console.log('Creating maze structure...');
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x808080,
+            map: this.assetLoader.getTexture('wall'),
             roughness: 0.7,
             metalness: 0.3,
-            side: THREE.DoubleSide // Make maze walls visible from both sides
+            side: THREE.DoubleSide
         });
+        wallMaterial.map.repeat.set(2, 1);
+        wallMaterial.map.wrapS = wallMaterial.map.wrapT = THREE.RepeatWrapping;
 
         // Define maze segments (each is a wall piece)
         const mazeSegments = [
@@ -120,7 +128,7 @@ export class Level {
         // Add columns at intersections
         const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
         const columnMaterial = new THREE.MeshStandardMaterial({
-            color: 0x505050,
+            map: this.assetLoader.getTexture('wall'),
             roughness: 0.5,
             metalness: 0.5
         });
@@ -135,6 +143,8 @@ export class Level {
         columnPositions.forEach(pos => {
             const column = new THREE.Mesh(columnGeometry, columnMaterial);
             column.position.set(...pos);
+            column.castShadow = true;
+            column.receiveShadow = true;
             this.scene.add(column);
             this.physics.addCollider(column);
             this.meshes.push(column);
@@ -145,7 +155,10 @@ export class Level {
     dispose() {
         this.meshes.forEach(mesh => {
             if (mesh.geometry) mesh.geometry.dispose();
-            if (mesh.material) mesh.material.dispose();
+            if (mesh.material) {
+                if (mesh.material.map) mesh.material.map.dispose();
+                mesh.material.dispose();
+            }
             this.scene.remove(mesh);
         });
         this.meshes = [];

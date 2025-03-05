@@ -103,19 +103,28 @@ function gameLoop(currentTime) {
  * - Controls initialization
  * - Game loop setup
  */
-function initGame() {
+async function initGame() {
     try {
+        // Show loading screen
+        const loadingScreen = document.getElementById('loading-screen');
+        loadingScreen.style.display = 'flex';
+        loadingScreen.textContent = 'Loading game assets...';
+
         // Initialize Three.js scene
         const container = document.getElementById('game-container');
         gameState.scene = new Scene(container);
         
+        // Load assets
+        const assetsLoaded = await gameState.scene.loadAssets();
+        if (!assetsLoaded) {
+            throw new Error('Failed to load game assets');
+        }
+        
         // Add instructions
-        const loadingScreen = document.getElementById('loading-screen');
         loadingScreen.innerHTML = 'Click to start<br><br>' +
             'WASD or Arrow Keys: Move<br>' +
             'Mouse: Look around<br>' +
             'ESC: Pause';
-        loadingScreen.style.display = 'flex';
         
         // Show HUD
         const hud = document.getElementById('hud');
@@ -124,6 +133,7 @@ function initGame() {
         // Start game loop
         gameState.lastTime = performance.now();
         gameState.errorState = false;
+        gameState.isLoading = false;
         requestAnimationFrame(gameLoop);
         
         console.log('Game initialized successfully');

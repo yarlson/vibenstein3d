@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PlayerControls } from './controls.js';
 import { Physics } from './physics.js';
 import { Level } from './level.js';
+import { AssetLoader } from './assetLoader.js';
 
 export class Scene {
     constructor(container) {
@@ -23,9 +24,13 @@ export class Scene {
         // Initialize physics
         this.physics = new Physics(this.scene);
 
+        // Initialize asset loader
+        console.log('Initializing asset loader...');
+        this.assetLoader = new AssetLoader();
+
         console.log('Creating level...');
         // Create level first
-        this.level = new Level(this.scene, this.physics);
+        this.level = new Level(this.scene, this.physics, this.assetLoader);
         this.level.create();
 
         // Position camera after level creation - moved further back and up slightly
@@ -134,6 +139,19 @@ export class Scene {
         }
     }
 
+    // Add a method to load assets
+    async loadAssets() {
+        console.log('Loading assets...');
+        try {
+            await this.assetLoader.loadAllTextures();
+            console.log('Assets loaded successfully');
+            return true;
+        } catch (error) {
+            console.error('Failed to load assets:', error);
+            return false;
+        }
+    }
+
     // Clean up
     dispose() {
         if (this.level) {
@@ -141,6 +159,11 @@ export class Scene {
         }
         if (this.renderer) {
             this.renderer.dispose();
+        }
+        // Clean up textures
+        if (this.assetLoader) {
+            // The textures will be disposed when the level is disposed
+            this.assetLoader = null;
         }
     }
 } 
