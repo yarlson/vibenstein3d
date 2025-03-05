@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { PlayerControls } from './controls.js';
 import { Physics } from './physics.js';
+import { Level } from './level.js';
 
 export class Scene {
     constructor(container) {
+        console.log('Initializing Scene...');
+        
         // Scene setup
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x000000);
@@ -15,74 +18,75 @@ export class Scene {
             0.1, // Near plane
             1000 // Far plane
         );
-        this.camera.position.set(0, 1.6, 0); // Position camera at average human height
         
-        // Renderer setup
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        container.appendChild(this.renderer.domElement);
-
+        console.log('Initializing physics...');
         // Initialize physics
         this.physics = new Physics(this.scene);
 
-        // Initialize controls
+        console.log('Creating level...');
+        // Create level first
+        this.level = new Level(this.scene, this.physics);
+        this.level.create();
+
+        // Position camera after level creation - moved further back and up slightly
+        this.camera.position.set(0, 2, -10);
+        this.camera.lookAt(0, 2, 0);
+        console.log('Camera position:', this.camera.position);
+        
+        // Renderer setup
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            powerPreference: "high-performance"
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(this.renderer.domElement);
+
+        // Initialize controls after renderer setup
+        console.log('Initializing controls...');
         this.controls = new PlayerControls(this.camera, this.renderer.domElement, this.physics);
 
-        // Add some basic lighting
-        const ambientLight = new THREE.AmbientLight(0x404040);
-        this.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight.position.set(1, 1, 1);
-        this.scene.add(directionalLight);
-
-        // Create level geometry
-        this.createLevelGeometry();
+        // Setup lighting
+        console.log('Setting up lighting...');
+        this.setupLighting();
+        
+        // Add axes helper for debugging
+        const axesHelper = new THREE.AxesHelper(5);
+        this.scene.add(axesHelper);
+        
+        console.log('Scene initialization complete');
     }
 
-    createLevelGeometry() {
-        // Add a floor
-        const floorGeometry = new THREE.PlaneGeometry(20, 20);
-        const floorMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x808080,
-            roughness: 0.8,
-            metalness: 0.2
+    setupLighting() {
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        this.scene.add(ambientLight);
+
+        // Main directional light (sun-like)
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainLight.position.set(10, 10, 10);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 50;
+        this.scene.add(mainLight);
+
+        // Add point lights for atmosphere
+        const pointLights = [
+            { position: [5, 2.5, 5], color: 0xff7777, intensity: 0.5 },
+            { position: [-5, 2.5, -5], color: 0x7777ff, intensity: 0.5 },
+            { position: [5, 2.5, -5], color: 0x77ff77, intensity: 0.5 },
+            { position: [-5, 2.5, 5], color: 0xffff77, intensity: 0.5 }
+        ];
+
+        pointLights.forEach(light => {
+            const pointLight = new THREE.PointLight(light.color, light.intensity, 10);
+            pointLight.position.set(...light.position);
+            this.scene.add(pointLight);
         });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        floor.rotation.x = -Math.PI / 2;
-        this.scene.add(floor);
-
-        // Create walls
-        const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x808080,
-            roughness: 0.7,
-            metalness: 0.3
-        });
-
-        // Side walls
-        const wallGeometry = new THREE.BoxGeometry(1, 3, 20);
-        const wall1 = new THREE.Mesh(wallGeometry, wallMaterial);
-        wall1.position.set(5, 1.5, 0);
-        this.scene.add(wall1);
-        this.physics.addCollider(wall1);
-
-        const wall2 = new THREE.Mesh(wallGeometry, wallMaterial);
-        wall2.position.set(-5, 1.5, 0);
-        this.scene.add(wall2);
-        this.physics.addCollider(wall2);
-
-        // End walls
-        const endWallGeometry = new THREE.BoxGeometry(11, 3, 1);
-        const endWall1 = new THREE.Mesh(endWallGeometry, wallMaterial);
-        endWall1.position.set(0, 1.5, 10);
-        this.scene.add(endWall1);
-        this.physics.addCollider(endWall1);
-
-        const endWall2 = new THREE.Mesh(endWallGeometry, wallMaterial);
-        endWall2.position.set(0, 1.5, -10);
-        this.scene.add(endWall2);
-        this.physics.addCollider(endWall2);
     }
 
     // Handle window resize
@@ -94,13 +98,16 @@ export class Scene {
 
     // Update scene
     update(deltaTime) {
-        // Update controls
-        this.controls.update(deltaTime);
+        if (this.controls) {
+            this.controls.update(deltaTime);
+        }
     }
 
     // Render the scene
     render() {
-        this.renderer.render(this.scene, this.camera);
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     // Get camera for controls
@@ -115,11 +122,25 @@ export class Scene {
 
     // Lock controls
     lockControls() {
-        this.controls.lock();
+        if (this.controls) {
+            this.controls.lock();
+        }
     }
 
     // Unlock controls
     unlockControls() {
-        this.controls.unlock();
+        if (this.controls) {
+            this.controls.unlock();
+        }
+    }
+
+    // Clean up
+    dispose() {
+        if (this.level) {
+            this.level.dispose();
+        }
+        if (this.renderer) {
+            this.renderer.dispose();
+        }
     }
 } 

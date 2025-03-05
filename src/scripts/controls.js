@@ -3,8 +3,11 @@ import * as THREE from 'three';
 
 export class PlayerControls {
     constructor(camera, domElement, physics) {
+        // Store camera reference
+        this.camera = camera;
+        
         // Initialize PointerLock controls
-        this.controls = new PointerLockControls(camera, domElement);
+        this.controls = new PointerLockControls(this.camera, domElement);
         this.physics = physics;
         
         // Movement state
@@ -26,6 +29,8 @@ export class PlayerControls {
     setupEventListeners() {
         // Keyboard controls
         document.addEventListener('keydown', (event) => {
+            if (!this.controls.isLocked) return;
+            
             switch (event.code) {
                 case 'ArrowUp':
                 case 'KeyW':
@@ -50,6 +55,8 @@ export class PlayerControls {
         });
 
         document.addEventListener('keyup', (event) => {
+            if (!this.controls.isLocked) return;
+            
             switch (event.code) {
                 case 'ArrowUp':
                 case 'KeyW':
@@ -80,15 +87,29 @@ export class PlayerControls {
         // Lock/unlock handlers
         this.controls.addEventListener('lock', () => {
             console.log('Controls locked');
+            // Reset movement state when controls are locked
+            this.moveForward = false;
+            this.moveBackward = false;
+            this.moveLeft = false;
+            this.moveRight = false;
         });
 
         this.controls.addEventListener('unlock', () => {
             console.log('Controls unlocked');
+            // Reset movement state when controls are unlocked
+            this.moveForward = false;
+            this.moveBackward = false;
+            this.moveLeft = false;
+            this.moveRight = false;
         });
     }
 
     update(deltaTime) {
-        if (this.controls.isLocked) {
+        if (!this.controls || !this.controls.isLocked) {
+            return;
+        }
+
+        try {
             // Calculate movement direction
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
             this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
@@ -112,29 +133,37 @@ export class PlayerControls {
             // Get collision-adjusted movement
             if (this.velocity.length() > 0) {
                 const adjustedVelocity = this.physics.getAdjustedMovement(
-                    this.controls.getObject().position,
+                    this.camera.position,
                     this.velocity
                 );
 
                 // Apply movement
-                this.controls.moveRight(-adjustedVelocity.x);
-                this.controls.moveForward(-adjustedVelocity.z);
+                if (adjustedVelocity) {
+                    this.controls.moveRight(-adjustedVelocity.x);
+                    this.controls.moveForward(-adjustedVelocity.z);
+                }
             }
+        } catch (error) {
+            console.error('Error in controls update:', error);
         }
     }
 
     // Lock controls
     lock() {
-        this.controls.lock();
+        if (this.controls) {
+            this.controls.lock();
+        }
     }
 
     // Unlock controls
     unlock() {
-        this.controls.unlock();
+        if (this.controls) {
+            this.controls.unlock();
+        }
     }
 
     // Check if controls are locked
     isLocked() {
-        return this.controls.isLocked;
+        return this.controls ? this.controls.isLocked : false;
     }
 } 

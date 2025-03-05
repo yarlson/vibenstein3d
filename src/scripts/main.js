@@ -20,7 +20,8 @@ const gameState = {
     health: 100,
     ammo: 50,
     scene: null,
-    lastTime: 0
+    lastTime: 0,
+    errorState: false
 };
 
 // Initialize game when the window loads
@@ -45,27 +46,53 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+// Handle pointer lock change
+document.addEventListener('pointerlockchange', () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (document.pointerLockElement) {
+        // Controls are locked, hide the loading screen
+        loadingScreen.style.display = 'none';
+        gameState.isPaused = false;
+    } else {
+        // Controls are unlocked, show the loading screen with instructions
+        loadingScreen.style.display = 'flex';
+        loadingScreen.innerHTML = 'Click to start<br><br>' +
+            'WASD or Arrow Keys: Move<br>' +
+            'Mouse: Look around<br>' +
+            'ESC: Pause';
+        gameState.isPaused = true;
+    }
+});
+
 /**
  * Game loop function
  * @param {number} currentTime - Current timestamp
  */
 function gameLoop(currentTime) {
-    if (gameState.isPaused) {
-        return;
+    try {
+        if (gameState.isPaused || gameState.errorState) {
+            return;
+        }
+
+        // Calculate delta time
+        const deltaTime = Math.min((currentTime - gameState.lastTime) / 1000, 0.1);
+        gameState.lastTime = currentTime;
+
+        // Update game logic
+        gameState.scene.update(deltaTime);
+
+        // Render the scene
+        gameState.scene.render();
+
+        // Request next frame
+        requestAnimationFrame(gameLoop);
+    } catch (error) {
+        console.error('Error in game loop:', error);
+        gameState.errorState = true;
+        const loadingScreen = document.getElementById('loading-screen');
+        loadingScreen.style.display = 'flex';
+        loadingScreen.textContent = 'An error occurred. Please refresh the page.';
     }
-
-    // Calculate delta time
-    const deltaTime = (currentTime - gameState.lastTime) / 1000;
-    gameState.lastTime = currentTime;
-
-    // Update game logic
-    gameState.scene.update(deltaTime);
-
-    // Render the scene
-    gameState.scene.render();
-
-    // Request next frame
-    requestAnimationFrame(gameLoop);
 }
 
 /**
@@ -88,6 +115,7 @@ function initGame() {
             'WASD or Arrow Keys: Move<br>' +
             'Mouse: Look around<br>' +
             'ESC: Pause';
+        loadingScreen.style.display = 'flex';
         
         // Show HUD
         const hud = document.getElementById('hud');
@@ -95,12 +123,21 @@ function initGame() {
         
         // Start game loop
         gameState.lastTime = performance.now();
+        gameState.errorState = false;
         requestAnimationFrame(gameLoop);
         
         console.log('Game initialized successfully');
     } catch (error) {
         console.error('Failed to initialize game:', error);
+        gameState.errorState = true;
         const loadingScreen = document.getElementById('loading-screen');
         loadingScreen.textContent = 'Failed to initialize game. Please check console for details.';
+    }
+}
+
+// Clean up function for when the game needs to be destroyed
+function cleanup() {
+    if (gameState.scene) {
+        gameState.scene.dispose();
     }
 } 
