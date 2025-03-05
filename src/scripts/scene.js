@@ -27,16 +27,6 @@ export class Scene {
         // Initialize asset loader
         console.log('Initializing asset loader...');
         this.assetLoader = new AssetLoader();
-
-        console.log('Creating level...');
-        // Create level first
-        this.level = new Level(this.scene, this.physics, this.assetLoader);
-        this.level.create();
-
-        // Position camera after level creation - moved further back and up slightly
-        this.camera.position.set(0, 2, -10);
-        this.camera.lookAt(0, 2, 0);
-        console.log('Camera position:', this.camera.position);
         
         // Renderer setup
         this.renderer = new THREE.WebGLRenderer({ 
@@ -60,8 +50,32 @@ export class Scene {
         // Add axes helper for debugging
         const axesHelper = new THREE.AxesHelper(5);
         this.scene.add(axesHelper);
-        
-        console.log('Scene initialization complete');
+    }
+
+    // Add a method to initialize the level
+    async initialize() {
+        console.log('Loading assets...');
+        try {
+            // Load textures first
+            await this.assetLoader.loadAllTextures();
+            console.log('Assets loaded successfully');
+            
+            // Create level after textures are loaded
+            console.log('Creating level...');
+            this.level = new Level(this.scene, this.physics, this.assetLoader);
+            this.level.create();
+            
+            // Position camera after level creation
+            this.camera.position.set(0, 2, -10);
+            this.camera.lookAt(0, 2, 0);
+            console.log('Camera position:', this.camera.position);
+            
+            console.log('Scene initialization complete');
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize scene:', error);
+            return false;
+        }
     }
 
     setupLighting() {

@@ -31,8 +31,15 @@ export class Level {
             metalness: 0.2,
             side: THREE.DoubleSide
         });
-        floorMaterial.map.repeat.set(10, 10);
+
+        // Clone the texture for independent repeat settings
+        floorMaterial.map = floorMaterial.map.clone();
+        // Set repeat based on floor size (50x50) - using smaller repeat for better visual
+        floorMaterial.map.repeat.set(8, 8);
         floorMaterial.map.wrapS = floorMaterial.map.wrapT = THREE.RepeatWrapping;
+        // Ensure proper texture filtering
+        floorMaterial.map.minFilter = THREE.LinearFilter;
+        floorMaterial.map.magFilter = THREE.LinearFilter;
         
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2;
@@ -50,20 +57,26 @@ export class Level {
             metalness: 0.3,
             side: THREE.DoubleSide
         });
-        wallMaterial.map.repeat.set(2, 1);
-        wallMaterial.map.wrapS = wallMaterial.map.wrapT = THREE.RepeatWrapping;
 
         // Create outer walls
         const walls = [
-            { size: [1, 3, 50], position: [25, 1.5, 0] },  // Right wall
-            { size: [1, 3, 50], position: [-25, 1.5, 0] }, // Left wall
-            { size: [50, 3, 1], position: [0, 1.5, 25] },  // Front wall
-            { size: [50, 3, 1], position: [0, 1.5, -25] }  // Back wall
+            { size: [1, 3, 50], position: [25, 1.5, 0], repeat: [25, 2, 25] },  // Right wall
+            { size: [1, 3, 50], position: [-25, 1.5, 0], repeat: [25, 2, 25] }, // Left wall
+            { size: [50, 3, 1], position: [0, 1.5, 25], repeat: [25, 2, 1] },  // Front wall
+            { size: [50, 3, 1], position: [0, 1.5, -25], repeat: [25, 2, 1] }  // Back wall
         ];
 
         walls.forEach((wall, index) => {
             const geometry = new THREE.BoxGeometry(...wall.size);
-            const mesh = new THREE.Mesh(geometry, wallMaterial);
+            const material = wallMaterial.clone(); // Clone material for each wall
+            material.map = wallMaterial.map.clone(); // Clone texture for independent repeat settings
+            material.map.repeat.set(wall.repeat[0], wall.repeat[1]);
+            material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+            // Ensure proper texture filtering
+            material.map.minFilter = THREE.LinearFilter;
+            material.map.magFilter = THREE.LinearFilter;
+            
+            const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(...wall.position);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
@@ -82,35 +95,41 @@ export class Level {
             metalness: 0.3,
             side: THREE.DoubleSide
         });
-        wallMaterial.map.repeat.set(2, 1);
-        wallMaterial.map.wrapS = wallMaterial.map.wrapT = THREE.RepeatWrapping;
 
         // Define maze segments (each is a wall piece)
         const mazeSegments = [
             // Main corridor
-            { size: [1, 3, 20], position: [5, 1.5, 0] },
-            { size: [1, 3, 20], position: [-5, 1.5, 0] },
+            { size: [1, 3, 20], position: [5, 1.5, 0], repeat: [1, 2, 10] },
+            { size: [1, 3, 20], position: [-5, 1.5, 0], repeat: [1, 2, 10] },
             
             // Cross corridors
-            { size: [12, 3, 1], position: [0, 1.5, 5] },
-            { size: [12, 3, 1], position: [0, 1.5, -5] },
+            { size: [12, 3, 1], position: [0, 1.5, 5], repeat: [6, 2, 1] },
+            { size: [12, 3, 1], position: [0, 1.5, -5], repeat: [6, 2, 1] },
             
             // Side rooms
-            { size: [8, 3, 1], position: [9, 1.5, 8] },
-            { size: [8, 3, 1], position: [-9, 1.5, 8] },
-            { size: [8, 3, 1], position: [9, 1.5, -8] },
-            { size: [8, 3, 1], position: [-9, 1.5, -8] },
+            { size: [8, 3, 1], position: [9, 1.5, 8], repeat: [4, 2, 1] },
+            { size: [8, 3, 1], position: [-9, 1.5, 8], repeat: [4, 2, 1] },
+            { size: [8, 3, 1], position: [9, 1.5, -8], repeat: [4, 2, 1] },
+            { size: [8, 3, 1], position: [-9, 1.5, -8], repeat: [4, 2, 1] },
             
             // Room dividers
-            { size: [1, 3, 6], position: [13, 1.5, 5] },
-            { size: [1, 3, 6], position: [-13, 1.5, 5] },
-            { size: [1, 3, 6], position: [13, 1.5, -5] },
-            { size: [1, 3, 6], position: [-13, 1.5, -5] }
+            { size: [1, 3, 6], position: [13, 1.5, 5], repeat: [1, 2, 3] },
+            { size: [1, 3, 6], position: [-13, 1.5, 5], repeat: [1, 2, 3] },
+            { size: [1, 3, 6], position: [13, 1.5, -5], repeat: [1, 2, 3] },
+            { size: [1, 3, 6], position: [-13, 1.5, -5], repeat: [1, 2, 3] }
         ];
 
         mazeSegments.forEach((segment, index) => {
             const geometry = new THREE.BoxGeometry(...segment.size);
-            const mesh = new THREE.Mesh(geometry, wallMaterial);
+            const material = wallMaterial.clone(); // Clone material for each segment
+            material.map = wallMaterial.map.clone(); // Clone texture for independent repeat settings
+            material.map.repeat.set(segment.repeat[0], segment.repeat[1]);
+            material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+            // Ensure proper texture filtering
+            material.map.minFilter = THREE.LinearFilter;
+            material.map.magFilter = THREE.LinearFilter;
+            
+            const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(...segment.position);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
@@ -163,4 +182,4 @@ export class Level {
         });
         this.meshes = [];
     }
-} 
+}

@@ -62,9 +62,9 @@ export class AssetLoader {
     async loadAllTextures() {
         console.log('Starting to load all textures...');
         const texturesToLoad = [
-            { path: '/src/assets/textures/wall.jpg', name: 'wall' },
-            { path: '/src/assets/textures/floor.jpg', name: 'floor' },
-            { path: '/src/assets/textures/ceiling.jpg', name: 'ceiling' }
+            { path: 'src/assets/textures/wall.jpg', name: 'wall' },
+            { path: 'src/assets/textures/floor.jpg', name: 'floor' },
+            { path: 'src/assets/textures/ceiling.jpg', name: 'ceiling' }
         ];
 
         try {

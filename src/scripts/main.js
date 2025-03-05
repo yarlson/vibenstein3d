@@ -114,10 +114,10 @@ async function initGame() {
         const container = document.getElementById('game-container');
         gameState.scene = new Scene(container);
         
-        // Load assets
-        const assetsLoaded = await gameState.scene.loadAssets();
-        if (!assetsLoaded) {
-            throw new Error('Failed to load game assets');
+        // Initialize scene and load assets
+        const initialized = await gameState.scene.initialize();
+        if (!initialized) {
+            throw new Error('Failed to initialize game scene');
         }
         
         // Add instructions
