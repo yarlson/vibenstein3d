@@ -1,15 +1,10 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import { useRef } from 'react';
-
-const TestCube = () => {
-  return (
-    <mesh position={[0, 0, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="orange" />
-    </mesh>
-  );
-};
+import { Physics } from '@react-three/cannon';
+import { Player } from '../components/Player';
+import { Floor } from '../components/Floor';
+import { Wall } from '../components/Wall';
+import { Sky, Stats } from '@react-three/drei';
 
 export const Scene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,22 +14,44 @@ export const Scene = () => {
       ref={canvasRef}
       camera={{ position: [0, 1.6, 5], fov: 75 }}
       style={{ width: '100vw', height: '100vh' }}
+      shadows
     >
+      {/* Sky for better visuals */}
+      <Sky sunPosition={[100, 10, 100]} />
+      
       {/* Lights */}
       <ambientLight intensity={0.5} />
       <directionalLight
-        position={[5, 5, 5]}
+        position={[10, 10, 10]}
         intensity={1}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
 
-      {/* Test cube */}
-      <TestCube />
-
-      {/* Controls for development */}
-      <OrbitControls />
+      {/* Physics world */}
+      <Physics gravity={[0, -9.81, 0]}>
+        {/* Player */}
+        <Player />
+        
+        {/* Floor */}
+        <Floor />
+        
+        {/* Test walls to demonstrate collision */}
+        <Wall position={[0, 1, -5]} size={[10, 2, 1]} />
+        <Wall position={[-5, 1, 0]} size={[1, 2, 10]} />
+        <Wall position={[5, 1, 0]} size={[1, 2, 10]} />
+        <Wall position={[0, 1, 5]} size={[10, 2, 1]} />
+        
+        {/* Some obstacles */}
+        <Wall position={[-2, 1, -2]} />
+        <Wall position={[2, 1, 2]} />
+        <Wall position={[-2, 1, 2]} />
+        <Wall position={[2, 1, -2]} />
+      </Physics>
+      
+      {/* Performance stats */}
+      <Stats />
     </Canvas>
   );
 }; 
