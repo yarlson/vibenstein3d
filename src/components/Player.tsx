@@ -1,10 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useBox } from '@react-three/cannon';
-import { Vector3 } from 'three';
-import { PointerLockControls } from '@react-three/drei';
-import { Mesh } from 'three';
-import { CELL_SIZE } from '../types/level';
+import {useEffect, useRef, useState} from 'react';
+import {useFrame, useThree} from '@react-three/fiber';
+import {useBox} from '@react-three/cannon';
+import {Mesh, Vector3} from 'three';
+import {PointerLockControls} from '@react-three/drei';
+import {CELL_SIZE} from '../types/level';
 
 // Movement speed constants - increased for better responsiveness
 const MOVE_SPEED = 10;
@@ -56,14 +55,12 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   
   // Subscribe to physics body position changes
   useEffect(() => {
-    const unsubscribe = api.velocity.subscribe((v) => {
+    return api.velocity.subscribe((v) => {
       velocity.current.set(v[0], v[1], v[2]);
-      
+
       // Check if player is on ground (very simple check)
       setOnGround(Math.abs(v[1]) < 0.1);
     });
-    
-    return unsubscribe;
   }, [api.velocity]);
   
   // Set up keyboard controls
