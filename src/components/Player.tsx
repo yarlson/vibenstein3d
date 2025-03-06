@@ -5,20 +5,18 @@ import { Mesh, Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 
-// Movement speed constants
-const MOVE_SPEED = 15; // Increased from 10 to 20 for faster movement
+const MOVE_SPEED = 15;
 export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
-const JUMP_FORCE = 12; // Increased jump force
-const DAMPING = 0.2; // Reduced from 0.5 for less friction
+const JUMP_FORCE = 6;
+const DAMPING = 0.2;
 
 interface PlayerProps {
-  spawnPosition?: [number, number]; // Grid coordinates [x, z]
+  spawnPosition?: [number, number];
 }
 
 export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
-  // Convert grid coordinates to world coordinates
-  const worldX = (spawnPosition[0] - 5) * CELL_SIZE; // Assuming 10x10 grid, center at 5,5
+  const worldX = (spawnPosition[0] - 5) * CELL_SIZE;
   const worldZ = (spawnPosition[1] - 5) * CELL_SIZE;
 
   const [ref, api] = useBox<Mesh>(() => ({
@@ -28,18 +26,14 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     args: [PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_RADIUS],
     fixedRotation: true,
     userData: { type: 'player' },
-    linearDamping: DAMPING, // Reduced damping for smoother movement
+    linearDamping: DAMPING,
   }));
 
-  // Get Three.js camera
   const { camera } = useThree();
-
-  // Set initial camera rotation on mount
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
   }, [camera]);
 
-  // Movement state
   const [movement, setMovement] = useState({
     forward: false,
     backward: false,
@@ -48,23 +42,17 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     jump: false,
   });
 
-  // Velocity state
   const velocity = useRef<Vector3>(new Vector3());
-
-  // Track if player is on ground
   const [onGround, setOnGround] = useState(true);
 
-  // Subscribe to physics body position changes
   useEffect(() => {
     return api.velocity.subscribe((v) => {
       velocity.current.set(v[0], v[1], v[2]);
-
-      // Check if player is on ground (very simple check)
+      // Determine if on the ground by checking the vertical velocity
       setOnGround(Math.abs(v[1]) < 0.1);
     });
   }, [api.velocity]);
 
-  // Set up keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.code) {
@@ -116,50 +104,45 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
-  // Update player position and camera
   useFrame(() => {
-    // Calculate movement direction based on camera orientation
+    // Compute horizontal movement direction based on camera rotation
     const direction = new Vector3();
     const frontVector = new Vector3(0, 0, Number(movement.backward) - Number(movement.forward));
     const sideVector = new Vector3(Number(movement.left) - Number(movement.right), 0, 0);
-
     direction
       .subVectors(frontVector, sideVector)
       .normalize()
       .multiplyScalar(MOVE_SPEED)
       .applyEuler(camera.rotation);
 
-    // Apply movement to physics body
+    // Only update horizontal velocity; keep the vertical velocity intact for jumping/gravity.
     api.velocity.set(direction.x, velocity.current.y, direction.z);
 
-    // Handle jumping - only allow jumping when on ground
+    // Handle jump with an impulse (if on ground)
     if (movement.jump && onGround) {
-      api.velocity.set(velocity.current.x, JUMP_FORCE, velocity.current.z);
+      api.applyImpulse([0, JUMP_FORCE, 0], [0, 0, 0]);
       setMovement((prev) => ({ ...prev, jump: false }));
     }
 
-    // Update camera position to follow player
+    // Update camera position to follow the player’s physics body.
+    // If you want an offset for eye-level, you can add it here.
     ref.current?.getWorldPosition(camera.position);
-    // Adjust camera height to be at eye level
-    camera.position.y = PLAYER_HEIGHT - 0.2; // Fixed height for better stability
+    // Example for an eye-level offset:
+    // camera.position.y += PLAYER_HEIGHT * 0.5;
   });
 
   return (
     <>
-      {/* Player physics body (invisible) */}
       <mesh ref={ref} visible={false}>
         <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
-
-      {/* Pointer lock controls for mouse look */}
       <PointerLockControls />
     </>
   );
