@@ -3,8 +3,9 @@ import { useRef } from 'react';
 import { Physics } from '@react-three/cannon';
 import { Player, PLAYER_HEIGHT } from '../components/Player';
 import { Floor } from '../components/Floor';
-import { Wall } from '../components/Wall';
+import { LevelGrid } from '../components/LevelGrid';
 import { Sky, Stats } from '@react-three/drei';
+import { level1 } from '../levels/level1';
 
 export const Scene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,23 +36,14 @@ export const Scene = () => {
 
       {/* Physics world */}
       <Physics gravity={[0, -9.81, 0]}>
-        {/* Player */}
-        <Player />
+        {/* Player with spawn position from level data */}
+        <Player spawnPosition={level1.playerSpawn} />
         
         {/* Floor */}
         <Floor />
         
-        {/* Test walls to demonstrate collision */}
-        <Wall position={[0, 1, -5]} size={[10, 2, 1]} />
-        <Wall position={[-5, 1, 0]} size={[1, 2, 10]} />
-        <Wall position={[5, 1, 0]} size={[1, 2, 10]} />
-        <Wall position={[0, 1, 5]} size={[10, 2, 1]} />
-        
-        {/* Some obstacles */}
-        <Wall position={[-2, 1, -2]} />
-        <Wall position={[2, 1, 2]} />
-        <Wall position={[-2, 1, 2]} />
-        <Wall position={[2, 1, -2]} />
+        {/* Level Grid */}
+        <LevelGrid level={level1} />
       </Physics>
       
       {/* Performance stats */}

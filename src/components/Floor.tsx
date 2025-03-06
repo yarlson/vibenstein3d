@@ -1,5 +1,9 @@
 import { usePlane } from '@react-three/cannon';
 import { Mesh } from 'three';
+import { CELL_SIZE } from '../types/level';
+
+// Calculate floor size based on a 10x10 grid
+const FLOOR_SIZE = CELL_SIZE * 10;
 
 export const Floor = () => {
   // Create a static plane for the floor
@@ -11,7 +15,7 @@ export const Floor = () => {
 
   return (
     <mesh ref={ref} receiveShadow>
-      <planeGeometry args={[100, 100]} />
+      <planeGeometry args={[FLOOR_SIZE, FLOOR_SIZE]} />
       <meshStandardMaterial color="#444444" />
     </mesh>
   );

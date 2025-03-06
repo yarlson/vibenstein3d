@@ -4,6 +4,7 @@ import { useBox } from '@react-three/cannon';
 import { Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { Mesh } from 'three';
+import { CELL_SIZE } from '../types/level';
 
 // Movement speed constants - increased for better responsiveness
 const MOVE_SPEED = 10;
@@ -11,11 +12,19 @@ export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 8;
 
-export const Player = () => {
+interface PlayerProps {
+  spawnPosition?: [number, number]; // Grid coordinates [x, z]
+}
+
+export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
+  // Convert grid coordinates to world coordinates
+  const worldX = (spawnPosition[0] - 5) * CELL_SIZE; // Assuming 10x10 grid, center at 5,5
+  const worldZ = (spawnPosition[1] - 5) * CELL_SIZE;
+
   const [ref, api] = useBox<Mesh>(() => ({
     mass: 1,
     type: 'Dynamic',
-    position: [0, PLAYER_HEIGHT / 2, 0],
+    position: [worldX, PLAYER_HEIGHT / 2, worldZ],
     args: [PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_RADIUS],
     fixedRotation: true,
     userData: { type: 'player' },
