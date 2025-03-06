@@ -6,13 +6,12 @@ import { PointerLockControls } from '@react-three/drei';
 import { Mesh } from 'three';
 
 // Movement speed constants - increased for better responsiveness
-const MOVE_SPEED = 10; // Increased from 5 to 10
+const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
-const JUMP_FORCE = 8; // Increased jump force
+const JUMP_FORCE = 8;
 
 export const Player = () => {
-  // Reference to the player's physical body
   const [ref, api] = useBox<Mesh>(() => ({
     mass: 1,
     type: 'Dynamic',
@@ -20,12 +19,17 @@ export const Player = () => {
     args: [PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_RADIUS],
     fixedRotation: true,
     userData: { type: 'player' },
-    linearDamping: 0.5, // Add damping to make movement smoother
+    linearDamping: 0.5,
   }));
 
-  // Get Three.js camera and scene
+  // Get Three.js camera
   const { camera } = useThree();
-  
+
+  // Set initial camera rotation on mount
+  useEffect(() => {
+    camera.rotation.set(0, 0, 0);
+  }, [camera]);
+
   // Movement state
   const [movement, setMovement] = useState({
     forward: false,
@@ -137,7 +141,7 @@ export const Player = () => {
     // Update camera position to follow player
     ref.current?.getWorldPosition(camera.position);
     // Adjust camera height to be at eye level
-    camera.position.y += PLAYER_HEIGHT / 2 - 0.2; // Slightly lower for better perspective
+    camera.position.y = PLAYER_HEIGHT - 0.2; // Fixed height for better stability
   });
   
   return (

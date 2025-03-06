@@ -12,7 +12,11 @@ export const Scene = () => {
   return (
     <Canvas
       ref={canvasRef}
-      camera={{ position: [0, PLAYER_HEIGHT, 0], fov: 75 }}
+      camera={{
+        position: [0, PLAYER_HEIGHT, 5],
+        rotation: [0, 0, 0],
+        fov: 75
+      }}
       style={{ width: '100%', height: '100%' }}
       shadows
     >
