@@ -19,4 +19,4 @@ export const level1: LevelData = {
     { position: [7, 7], type: EnemyType.Guard, rotation: Math.PI },
   ],
   playerSpawn: [4, 4], // Center of the map
-}; 
+};

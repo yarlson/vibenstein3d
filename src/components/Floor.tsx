@@ -19,4 +19,4 @@ export const Floor = () => {
       <meshStandardMaterial color="#444444" />
     </mesh>
   );
-}; 
+};

@@ -1,9 +1,9 @@
-import {useEffect, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
-import {useBox} from '@react-three/cannon';
-import {Mesh, Vector3} from 'three';
-import {PointerLockControls} from '@react-three/drei';
-import {CELL_SIZE} from '../types/level';
+import { useEffect, useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useBox } from '@react-three/cannon';
+import { Mesh, Vector3 } from 'three';
+import { PointerLockControls } from '@react-three/drei';
+import { CELL_SIZE } from '../types/level';
 
 // Movement speed constants
 const MOVE_SPEED = 15; // Increased from 10 to 20 for faster movement
@@ -47,13 +47,13 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     right: false,
     jump: false,
   });
-  
+
   // Velocity state
   const velocity = useRef<Vector3>(new Vector3());
-  
+
   // Track if player is on ground
   const [onGround, setOnGround] = useState(true);
-  
+
   // Subscribe to physics body position changes
   useEffect(() => {
     return api.velocity.subscribe((v) => {
@@ -63,7 +63,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       setOnGround(Math.abs(v[1]) < 0.1);
     });
   }, [api.velocity]);
-  
+
   // Set up keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,7 +89,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
           break;
       }
     };
-    
+
     const handleKeyUp = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'KeyW':
@@ -113,44 +113,44 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
           break;
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
-  
+
   // Update player position and camera
   useFrame(() => {
     // Calculate movement direction based on camera orientation
     const direction = new Vector3();
     const frontVector = new Vector3(0, 0, Number(movement.backward) - Number(movement.forward));
     const sideVector = new Vector3(Number(movement.left) - Number(movement.right), 0, 0);
-    
+
     direction
       .subVectors(frontVector, sideVector)
       .normalize()
       .multiplyScalar(MOVE_SPEED)
       .applyEuler(camera.rotation);
-    
+
     // Apply movement to physics body
     api.velocity.set(direction.x, velocity.current.y, direction.z);
-    
+
     // Handle jumping - only allow jumping when on ground
     if (movement.jump && onGround) {
       api.velocity.set(velocity.current.x, JUMP_FORCE, velocity.current.z);
       setMovement((prev) => ({ ...prev, jump: false }));
     }
-    
+
     // Update camera position to follow player
     ref.current?.getWorldPosition(camera.position);
     // Adjust camera height to be at eye level
     camera.position.y = PLAYER_HEIGHT - 0.2; // Fixed height for better stability
   });
-  
+
   return (
     <>
       {/* Player physics body (invisible) */}
@@ -158,9 +158,9 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
         <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
-      
+
       {/* Pointer lock controls for mouse look */}
       <PointerLockControls />
     </>
   );
-}; 
+};

@@ -21,4 +21,4 @@ export const Wall = ({ position, size = [1, 2, 1], color = '#8B4513' }: WallProp
       <meshStandardMaterial color={color} />
     </mesh>
   );
-}; 
+};

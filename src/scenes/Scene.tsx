@@ -16,14 +16,14 @@ export const Scene = () => {
       camera={{
         position: [0, PLAYER_HEIGHT, 5],
         rotation: [0, 0, 0],
-        fov: 75
+        fov: 75,
       }}
       style={{ width: '100%', height: '100%' }}
       shadows
     >
       {/* Sky for better visuals */}
       <Sky sunPosition={[100, 10, 100]} />
-      
+
       {/* Lights */}
       <ambientLight intensity={0.5} />
       <directionalLight
@@ -38,16 +38,16 @@ export const Scene = () => {
       <Physics gravity={[0, -9.81, 0]}>
         {/* Player with spawn position from level data */}
         <Player spawnPosition={level1.playerSpawn} />
-        
+
         {/* Floor */}
         <Floor />
-        
+
         {/* Level Grid */}
         <LevelGrid level={level1} />
       </Physics>
-      
+
       {/* Performance stats */}
       <Stats />
     </Canvas>
   );
-}; 
+};
