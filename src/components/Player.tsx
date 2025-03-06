@@ -5,11 +5,12 @@ import {Mesh, Vector3} from 'three';
 import {PointerLockControls} from '@react-three/drei';
 import {CELL_SIZE} from '../types/level';
 
-// Movement speed constants - increased for better responsiveness
-const MOVE_SPEED = 10;
+// Movement speed constants
+const MOVE_SPEED = 15; // Increased from 10 to 20 for faster movement
 export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
-const JUMP_FORCE = 8;
+const JUMP_FORCE = 12; // Increased jump force
+const DAMPING = 0.2; // Reduced from 0.5 for less friction
 
 interface PlayerProps {
   spawnPosition?: [number, number]; // Grid coordinates [x, z]
@@ -27,7 +28,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     args: [PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_RADIUS],
     fixedRotation: true,
     userData: { type: 'player' },
-    linearDamping: 0.5,
+    linearDamping: DAMPING, // Reduced damping for smoother movement
   }));
 
   // Get Three.js camera
