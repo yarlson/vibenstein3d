@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { useRef } from 'react';
 import { Physics } from '@react-three/cannon';
-import { Player } from '../components/Player';
+import { Player, PLAYER_HEIGHT } from '../components/Player';
 import { Floor } from '../components/Floor';
 import { Wall } from '../components/Wall';
 import { Sky, Stats } from '@react-three/drei';
@@ -12,8 +12,8 @@ export const Scene = () => {
   return (
     <Canvas
       ref={canvasRef}
-      camera={{ position: [0, 1.6, 5], fov: 75 }}
-      style={{ width: '100vw', height: '100vh' }}
+      camera={{ position: [0, PLAYER_HEIGHT, 0], fov: 75 }}
+      style={{ width: '100%', height: '100%' }}
       shadows
     >
       {/* Sky for better visuals */}

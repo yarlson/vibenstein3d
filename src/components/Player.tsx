@@ -5,10 +5,11 @@ import { Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { Mesh } from 'three';
 
-// Movement speed constants
-const MOVE_SPEED = 5;
-const PLAYER_HEIGHT = 1.8;
+// Movement speed constants - increased for better responsiveness
+const MOVE_SPEED = 10; // Increased from 5 to 10
+export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
+const JUMP_FORCE = 8; // Increased jump force
 
 export const Player = () => {
   // Reference to the player's physical body
@@ -19,6 +20,7 @@ export const Player = () => {
     args: [PLAYER_RADIUS, PLAYER_HEIGHT, PLAYER_RADIUS],
     fixedRotation: true,
     userData: { type: 'player' },
+    linearDamping: 0.5, // Add damping to make movement smoother
   }));
 
   // Get Three.js camera and scene
@@ -36,10 +38,16 @@ export const Player = () => {
   // Velocity state
   const velocity = useRef<Vector3>(new Vector3());
   
+  // Track if player is on ground
+  const [onGround, setOnGround] = useState(true);
+  
   // Subscribe to physics body position changes
   useEffect(() => {
     const unsubscribe = api.velocity.subscribe((v) => {
       velocity.current.set(v[0], v[1], v[2]);
+      
+      // Check if player is on ground (very simple check)
+      setOnGround(Math.abs(v[1]) < 0.1);
     });
     
     return unsubscribe;
@@ -50,15 +58,19 @@ export const Player = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'KeyW':
+        case 'ArrowUp':
           setMovement((prev) => ({ ...prev, forward: true }));
           break;
         case 'KeyS':
+        case 'ArrowDown':
           setMovement((prev) => ({ ...prev, backward: true }));
           break;
         case 'KeyA':
+        case 'ArrowLeft':
           setMovement((prev) => ({ ...prev, left: true }));
           break;
         case 'KeyD':
+        case 'ArrowRight':
           setMovement((prev) => ({ ...prev, right: true }));
           break;
         case 'Space':
@@ -70,15 +82,19 @@ export const Player = () => {
     const handleKeyUp = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'KeyW':
+        case 'ArrowUp':
           setMovement((prev) => ({ ...prev, forward: false }));
           break;
         case 'KeyS':
+        case 'ArrowDown':
           setMovement((prev) => ({ ...prev, backward: false }));
           break;
         case 'KeyA':
+        case 'ArrowLeft':
           setMovement((prev) => ({ ...prev, left: false }));
           break;
         case 'KeyD':
+        case 'ArrowRight':
           setMovement((prev) => ({ ...prev, right: false }));
           break;
         case 'Space':
@@ -112,16 +128,16 @@ export const Player = () => {
     // Apply movement to physics body
     api.velocity.set(direction.x, velocity.current.y, direction.z);
     
-    // Handle jumping
-    if (movement.jump) {
-      api.velocity.set(velocity.current.x, 5, velocity.current.z);
+    // Handle jumping - only allow jumping when on ground
+    if (movement.jump && onGround) {
+      api.velocity.set(velocity.current.x, JUMP_FORCE, velocity.current.z);
       setMovement((prev) => ({ ...prev, jump: false }));
     }
     
     // Update camera position to follow player
     ref.current?.getWorldPosition(camera.position);
     // Adjust camera height to be at eye level
-    camera.position.y += PLAYER_HEIGHT / 2;
+    camera.position.y += PLAYER_HEIGHT / 2 - 0.2; // Slightly lower for better perspective
   });
   
   return (
