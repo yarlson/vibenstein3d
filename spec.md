@@ -1,157 +1,243 @@
-# Developer Specification: Modern Wolfenstein 3D-Style Game in Three.js
+# Developer Specification: Wolfenstein 3D–Inspired FPS
 
 ## 1. Project Overview
 
 **Concept:**  
-A retro-inspired first-person shooter built using three.js. The game captures the core gameplay mechanics and aesthetic of Wolfenstein 3D while incorporating modern graphics, dynamic lighting, smooth animations, and 3D spatial audio. It is designed for modern desktop browsers and features session-based play with handcrafted levels.
-
-**Core Features:**
-- First-person movement and shooting mechanics.
-- Handcrafted maze-like levels with a modern visual polish.
-- Predictable enemy behavior.
-- Interactive elements (keys, switches, doors, secret passages).
-- Level-based progression with a narrative conveyed via environment design (no cutscenes/dialogue).
-- Classic HUD and scoring system.
-- Three weapon types: pistol, machine gun, shotgun.
+Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern desktop browsers. The game combines classic maze-like levels, hit-scan combat, and straightforward enemy AI with modern visual enhancements, dynamic lighting, high-resolution textures, and post-processing effects. The game is session-based (no save/load), with handcrafted levels defined using a grid-based layout, and features a HUD that displays health, ammo, keys, and score.
 
 ---
 
 ## 2. Requirements
 
-### 2.1 Gameplay Mechanics
-- **Movement & Controls:**
-    - FPS navigation using classic keyboard (WASD) and mouse for aiming.
-    - No support for gamepads or touch input.
+### Gameplay Features
 
-- **Combat & Weapons:**
-    - Weapons: Pistol, Machine Gun, Shotgun.
-    - Shooting mechanics should be straightforward with predictable enemy patterns.
-    - Particle effects (muzzle flashes, bullet impacts, enemy death animations) are strictly visual enhancements.
+- **Player Movement & Controls:**
+
+  - Classic WASD movement with mouse look (using pointer lock).
+  - Collision detection prevents passing through walls.
+  - Game-over state when health reaches zero, with a restart option.
+
+- **Combat:**
+
+  - **Player Shooting:**
+    - Implemented via hit-scan using Three.js’s Raycaster.
+    - Immediate damage and visual feedback (e.g., muzzle flash, impact sparks).
+  - **Enemy Shooting:**
+    - Enemies also use hit-scan shooting toward the player with cooldowns.
+
+- **Enemy AI:**
+
+  - States: Idle, Chase, Attack, and Death.
+  - Enemies remain idle until the player is in detection range, then chase and attack with hit-scan shooting.
+  - On death, trigger animations and remove enemies from active gameplay.
 
 - **Interactive Objects:**
-    - Keys, switches, doors, and secret passages integrated into level designs.
 
-- **Progression & Scoring:**
-    - Session-based game structure (each session is a single run through levels).
-    - Levels designed to track scoring based on enemy kills and level completion speed.
-    - Narrative conveyed through level design (no cutscenes or dialogue).
+  - Keys, switches, doors, and secret passages.
+  - Trigger zones using collision detection; when collided, update game state (e.g., collect key, open door).
+  - Door animations via AnimationMixer or tweening.
 
-### 2.2 Visual & Audio Enhancements
-- **Graphics:**
-    - Use three.js for 3D rendering.
-    - Modern enhancements including:
-        - Dynamic lighting.
-        - High-resolution textures.
-        - Smooth animations.
-- **Audio:**
-    - Modern 3D spatial sound for effects (gunfire, footsteps, ambient sounds).
-    - No background music.
+- **Weapon Management & Pickups:**
 
-### 2.3 User Interface & Menus
-- **HUD:**
-    - Display health, ammo count, and keys collected in a retro-style layout.
-- **Main Menu & Settings:**
-    - Main Menu includes:
-        - Start New Game
-        - Instructions/Help
-        - Settings (limited to volume and control configurations)
-        - Pause menu during gameplay.
-- **No advanced customization options:**
-    - No graphics quality settings or key binding customizations beyond the basic control scheme.
+  - Weapon switching via key mapping (e.g., 1=pistol, 2=machine gun, 3=shotgun).
+  - Collision-based pickups for health, ammo, and keys that update game state.
 
-### 2.4 Level Design
-- **Design Approach:**
-    - All levels are handcrafted and hardcoded into the game (no in-game editor or external tool required).
-    - Maze-like, similar to the original Wolfenstein 3D layout, but with modern graphical elements.
-- **Asset Management:**
-    - Use asynchronous asset loading to ensure minimal load times.
-    - Implement level streaming where feasible to optimize performance.
+- **HUD & Scoring:**
+
+  - Overlay displaying player health, ammo count, keys collected, and score.
+  - Score based on enemy kills and level completion time.
+  - Real-time state updates using a global state manager.
+
+- **Level Design:**
+
+  - Handcrafted, maze-like levels defined by a grid-based layout.
+  - Levels represented as 2D arrays or JSON files mapping cells (e.g., 0 = empty, 1 = wall, 2 = door, 3 = key).
+  - Parsing these grids to instantiate corresponding 3D objects in the scene.
+  - Static geometry for walls and floors integrated with physics for collision.
+
+- **Visual & Audio Enhancements:**
+  - Dynamic lighting (directional, ambient, point lights) with shadows.
+  - High-resolution textures using PBR materials, normal/bump maps.
+  - Post-processing effects (bloom, tone mapping, SSAO, vignette) via react-postprocessing.
+  - Particle effects for muzzle flashes, impact sparks, and enemy death animations.
+  - Spatial sound effects (no background music).
+
+### Technical Requirements
+
+- **Target Platforms:**  
+  Modern desktop browsers.
+
+- **Performance:**
+  - Asynchronous asset loading using Suspense and react-three-fiber’s useLoader.
+  - Optimization through texture compression, glTF asset optimization (gltf-pipeline or glTF-Transform), and potential texture atlasing.
 
 ---
 
-## 3. Architecture & Implementation
+## 3. Architecture Choices
 
-### 3.1 Framework & Libraries
-- **Primary Rendering Library:** three.js
-- **Core Languages:**
-    - JavaScript/TypeScript for client-side logic.
-    - HTML/CSS for UI and menus.
-- **Audio Library:** Use Web Audio API integrated with three.js for 3D spatial sound effects.
+### Frontend & Rendering
 
-### 3.2 Project Structure
-- **Entry Point:**
-    - An `index.html` that loads the main JavaScript file.
-- **Directory Layout (suggested):**
+- **Framework:** React with TypeScript.
+- **3D Rendering:**
+  - **react-three-fiber:** Declarative Three.js integration.
+  - **Three.js:** Core rendering engine.
+  - **react-three/drei:** Pre-built helpers (camera controls, loaders, debug tools).
+
+### State Management
+
+- **Zustand:**  
+  Lightweight, global state manager for player stats, enemy states, inventory, and HUD updates.
+
+### Physics & Collision
+
+- **cannon-es:**  
+  Physics engine.
+- **@react-three/cannon:**  
+  Integration of cannon-es with react-three-fiber to manage collisions for walls, player, and interactive triggers.
+
+### Asset Pipeline
+
+- **Models & Textures:**
+  - glTF/glb format for models (with embedded animations).
+  - Tools: gltf-pipeline/glTF-Transform for model optimization.
+  - Sharp and imagemin for texture compression (WebP/JPEG).
+  - Optional: Texture atlasing tools (e.g., TexturePacker).
+
+### UI & Styling
+
+- **CSS Modules:**  
+  For scoped, maintainable styling of HUDs, menus, and overlays.
+
+### Build & Deployment
+
+- **Bundler:** Vite (or Create React App with TypeScript) for efficient builds, hot reloading, and module bundling.
+- **Deployment:** Static hosting on platforms like Vercel, Netlify, or GitHub Pages.
+- **Version Control & CI/CD:** Git with optional GitHub Actions for continuous integration.
+
+---
+
+## 4. Data Handling
+
+### Level Data
+
+- **Format:**  
+  Define levels as 2D arrays or JSON files. Example:
+  ```json
+  {
+    "grid": [
+      [1, 1, 1, 1, 1],
+      [1, 0, 0, 3, 1],
+      [1, 0, 1, 0, 1],
+      [1, 2, 0, 0, 1],
+      [1, 1, 1, 1, 1]
+    ],
+    "enemies": [{ "position": [2, 1], "type": "grunt" }]
+  }
   ```
-  /src
-    /assets         # Textures, audio files, models
-    /levels         # Handcrafted level definitions (could be JSON or hardcoded JS objects)
-    /lib            # Three.js and any other external libraries
-    /scripts        # Main game scripts (game loop, rendering, physics, UI)
-  /tests            # Unit and integration tests
-  index.html
-  ```
+- **Parsing:**  
+  A dedicated React component (e.g., `<LevelGrid>`) loops over the grid, mapping cell values to 3D objects with predefined positions (using a consistent cell size).
 
-### 3.3 Data Handling
-- **Level Data:**
-    - Hardcoded within source files or loaded from static JSON files.
-    - Each level includes details about geometry, interactive object positions (keys, switches, doors), enemy placements, and scoring metrics.
-- **Asset Loading:**
-    - Use asynchronous JavaScript promises (or async/await) to load textures, audio, and models.
-    - Preload assets before level start; display a simple loading screen if necessary.
+### Asset Loading
 
-### 3.4 Error Handling & Debugging Strategies
-- **Asset Loading Errors:**
-    - Implement error callbacks or promise rejections with fallback logic (e.g., retry mechanism or placeholder asset display).
-    - Log errors to the console with descriptive messages.
-- **Runtime Errors:**
-    - Wrap critical functions in try/catch blocks.
-    - Use a global error handler to catch unexpected exceptions and, if possible, recover gracefully (e.g., pause the game and display an error message).
-- **Debug Tools:**
-    - Include a developer mode toggle that can display additional debug information (such as frame rate, asset loading status, collision boundaries, etc.) for testing purposes.
+- **Approach:**  
+  Use react-three-fiber’s **useLoader** and React’s **Suspense** to load models and textures asynchronously.
+- **Optimization:**  
+  Implement texture compression and model optimization as part of the build process.
 
 ---
 
-## 4. Testing Plan
+## 5. Error Handling Strategies
 
-### 4.1 Unit Testing
-- **Core Functions:**
-    - Test game loop, collision detection, enemy AI (even if predictable), and weapon firing logic.
-- **Asset Loading:**
-    - Unit tests for asynchronous asset loaders to ensure correct handling of successes and failures.
-- **Data Validation:**
-    - Validate level data structures (JSON schema if applicable) to ensure no malformed data.
+### Code-Level Error Handling
 
-### 4.2 Integration Testing
-- **Gameplay Scenarios:**
-    - Simulate complete game sessions to ensure levels load correctly, HUD updates, and gameplay mechanics (movement, shooting, enemy interactions) behave as expected.
-- **UI Testing:**
-    - Test transitions between the main menu, settings, and gameplay screens.
-    - Ensure that pausing and resuming gameplay work without issues.
+- **TypeScript:**  
+  Use strict type-checking to prevent runtime errors.
+- **Component Boundaries:**  
+  Use React error boundaries to catch errors in rendering and display fallback UI if needed.
 
-### 4.3 Performance Testing
-- **Browser Compatibility:**
-    - Verify smooth performance on modern desktop browsers (Chrome, Firefox, Edge, etc.).
-- **Asset Load Time:**
-    - Monitor asynchronous loading times and optimize if any asset causes noticeable delays.
-- **Frame Rate:**
-    - Ensure the game maintains an acceptable frame rate (targeting 60 FPS on supported hardware).
+### Collision & Game State
 
-### 4.4 User Acceptance Testing (UAT)
-- **Feedback Collection:**
-    - Have a small group of testers (with varying levels of experience with retro shooters) play the game.
-    - Collect feedback on gameplay feel, control responsiveness, and visual/audio quality.
-- **Iterative Fixes:**
-    - Adjust parameters based on tester feedback before final release.
+- **Collision Events:**  
+  Wrap collision callbacks (e.g., onCollide in interactive objects) with try/catch to handle unexpected errors without crashing the game loop.
+- **State Management:**  
+  Ensure Zustand state updates are atomic and validate inputs to avoid inconsistent states.
+
+### Logging & Debugging
+
+- **Browser Console:**  
+  Log errors and warnings during development.
+- **In-Game Debug Tools:**  
+  Integrate tools like react-three/drei’s Stats and Leva for runtime monitoring of performance and state.
+- **Optional:**  
+  Integrate an error tracking service (e.g., Sentry) in production to capture and report runtime errors.
 
 ---
 
-## 5. Deployment Considerations
+## 6. Testing Plan
 
-- **Hosting:**
-    - The game will be hosted as a web application accessible via modern desktop browsers.
-- **Continuous Integration (CI):**
-    - Set up a CI pipeline to run automated tests on code commits.
-- **Versioning:**
-    - Use semantic versioning to manage releases.
+### Manual Testing
 
+- **Gameplay Testing:**  
+  Regularly play through levels to ensure that:
+  - Player movement and collision work correctly.
+  - Enemy AI transitions (idle, chase, attack, death) perform as expected.
+  - Interactive objects (keys, doors, switches) trigger correctly on collision.
+  - HUD updates accurately reflect game state.
+- **Level Design:**  
+  Verify that levels parsed from grid data render correctly and that enemy placements, pickups, and interactive elements are balanced.
+
+### Debugging Tools
+
+- **In-Game Debug Overlays:**  
+  Use Stats (FPS) and collision visualization helpers to monitor performance and physics interactions.
+- **Leva Panel:**  
+  Toggle debug parameters and adjust game variables in real time to fine-tune gameplay.
+
+### Automated Testing (Optional / Future Considerations)
+
+- **Unit Tests:**  
+  While initial testing is manual, consider writing unit tests for critical functions (such as level data parsing, state updates in Zustand, and collision callback functions) using Jest.
+- **Integration Tests:**  
+  For core game logic, you might use React Testing Library to simulate events and verify state changes, though this is secondary given the graphical nature of the project.
+
+---
+
+## 7. Developer Workflow & Milestones
+
+### Setup & Initial Development
+
+- **Environment Setup:**  
+  Configure React with TypeScript, react-three-fiber, Zustand, and cannon-es. Ensure Vite (or CRA) is configured for hot reloading and module bundling.
+- **Basic Scene & Player:**  
+  Develop the basic Three.js scene, implement player movement with collision detection, and set up the camera with pointer lock.
+- **Grid-Based Level Prototype:**  
+  Create a simple grid-based level using hardcoded data to render walls, doors, and pickups.
+
+### Core Mechanics Implementation
+
+- **Combat System:**  
+  Implement hit-scan shooting for the player and enemies using Three.js’s Raycaster.
+- **Enemy AI:**  
+  Develop the state machine for enemy behavior and integrate basic animations.
+- **Interactive Objects:**  
+  Integrate collision triggers for keys and doors, updating game state via Zustand.
+- **HUD & UI:**  
+  Build the HUD overlay using React and CSS Modules; integrate state updates for health, ammo, keys, and score.
+
+### Visual Polish & Enhancements
+
+- **Lighting & Materials:**  
+  Enhance the scene with dynamic lighting, shadows, and high-res textures.
+- **Post-Processing Effects:**  
+  Integrate react-postprocessing for bloom, tone mapping, and ambient occlusion.
+- **Particle Effects:**  
+  Implement muzzle flashes and impact effects.
+
+### Finalization & Testing
+
+- **Iterative Playtesting:**  
+  Conduct thorough manual testing across levels, ensuring smooth gameplay and balanced difficulty.
+- **Error Handling & Logging:**  
+  Add error boundaries, robust collision handling, and logging mechanisms.
+- **Optimization & Deployment:**  
+  Optimize asset loading, bundle size, and deploy the game on a static hosting service.
