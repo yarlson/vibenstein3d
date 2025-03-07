@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBox } from '@react-three/cannon';
-import { Mesh, Vector3, Group } from 'three';
+import { Mesh, Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
@@ -31,7 +31,6 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   }));
 
   const { camera } = useThree();
-  const weaponGroup = useRef<Group>(null);
 
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
@@ -147,11 +146,9 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
       <PointerLockControls />
-      <group ref={weaponGroup}>
-        <primitive object={camera}>
-          <Weapon />
-        </primitive>
-      </group>
+      <primitive object={camera}>
+        <Weapon />
+      </primitive>
     </>
   );
 };

@@ -72,10 +72,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   reload: () => {
     const state = get();
     const weaponStats = WEAPON_STATS[state.currentWeapon];
-    
+
     if (!state.isReloading && state.ammo[state.currentWeapon] < weaponStats.maxAmmo) {
       set({ isReloading: true });
-      
+
       setTimeout(() => {
         set((state) => ({
           isReloading: false,
@@ -92,10 +92,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({
       ammo: {
         ...state.ammo,
-        [weapon]: Math.min(
-          state.ammo[weapon] + amount,
-          WEAPON_STATS[weapon].maxAmmo
-        ),
+        [weapon]: Math.min(state.ammo[weapon] + amount, WEAPON_STATS[weapon].maxAmmo),
       },
     }));
   },

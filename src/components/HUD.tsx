@@ -28,9 +28,7 @@ export const HUD = () => {
         {weaponNames[currentWeapon]}
         {isReloading && ' (Reloading...)'}
       </div>
-      <div>
-        Ammo: {ammo[currentWeapon]}
-      </div>
+      <div>Ammo: {ammo[currentWeapon]}</div>
     </div>
   );
-}; 
+};

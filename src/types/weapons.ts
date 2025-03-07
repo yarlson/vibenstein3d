@@ -42,4 +42,4 @@ export const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
     muzzleFlashDuration: 0.1,
     reloadTime: 2.5,
   },
-}; 
+};
