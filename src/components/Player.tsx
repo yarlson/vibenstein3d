@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBox } from '@react-three/cannon';
-import { Mesh, Vector3 } from 'three';
+import { Mesh, Vector3, Group } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
+import { Weapon } from './Weapon';
 
 const MOVE_SPEED = 15;
 export const PLAYER_HEIGHT = 1.8;
@@ -30,6 +31,8 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   }));
 
   const { camera } = useThree();
+  const weaponGroup = useRef<Group>(null);
+
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
   }, [camera]);
@@ -130,11 +133,11 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       setMovement((prev) => ({ ...prev, jump: false }));
     }
 
-    // Update camera position to follow the player’s physics body.
-    // If you want an offset for eye-level, you can add it here.
-    ref.current?.getWorldPosition(camera.position);
-    // Example for an eye-level offset:
-    // camera.position.y += PLAYER_HEIGHT * 0.5;
+    // Update camera position to follow the player's physics body
+    if (ref.current) {
+      ref.current.getWorldPosition(camera.position);
+      camera.position.y += PLAYER_HEIGHT * 0.5; // Position camera at eye level
+    }
   });
 
   return (
@@ -144,6 +147,11 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
       <PointerLockControls />
+      <group ref={weaponGroup}>
+        <primitive object={camera}>
+          <Weapon />
+        </primitive>
+      </group>
     </>
   );
 };
