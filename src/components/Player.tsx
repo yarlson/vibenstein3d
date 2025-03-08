@@ -6,7 +6,7 @@ import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
 
-const MOVE_SPEED = 15;
+const MOVE_SPEED = 20;
 export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 6;

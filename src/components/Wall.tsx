@@ -1,6 +1,7 @@
 import { useBox } from '@react-three/cannon';
 import { Mesh } from 'three';
 import { useEffect } from 'react';
+import { WALL_HEIGHT } from '../types/level';
 
 interface WallProps {
   position: [number, number, number];
@@ -8,7 +9,7 @@ interface WallProps {
   color?: string;
 }
 
-export const Wall = ({ position, size = [1, 2, 1], color = '#553222' }: WallProps) => {
+export const Wall = ({ position, size = [1, WALL_HEIGHT, 1], color = '#553222' }: WallProps) => {
   // Create a static box for the wall
   const [ref] = useBox<Mesh>(() => ({
     type: 'Static',

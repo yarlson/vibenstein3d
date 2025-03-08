@@ -34,4 +34,4 @@ export interface LevelData {
 
 // Cell size for converting grid coordinates to world coordinates
 export const CELL_SIZE = 2; // Each cell is 2x2 units
-export const WALL_HEIGHT = 2.5; // Standard wall height
+export const WALL_HEIGHT = 3.75; // Standard wall height (increased by 50% from 2.5)

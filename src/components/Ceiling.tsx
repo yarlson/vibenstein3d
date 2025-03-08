@@ -6,8 +6,8 @@ import { CELL_SIZE, WALL_HEIGHT } from '../types/level';
 // Calculate ceiling size based on a 10x10 grid, slightly larger to avoid gaps at edges
 const CEILING_SIZE = CELL_SIZE * 10 + 0.05;
 
-// Height of the ceiling from the floor - exact wall height for no gap
-const CEILING_HEIGHT = WALL_HEIGHT; // Exactly at wall height, no gap
+// Height of the ceiling from the floor - using WALL_HEIGHT constant for automatic adjustment
+const CEILING_HEIGHT = WALL_HEIGHT; // Ceiling positioned at wall height
 
 // Light fixture configuration
 interface LightConfig {
