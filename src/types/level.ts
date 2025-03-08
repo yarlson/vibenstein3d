@@ -12,17 +12,10 @@ export enum CellType {
 // Light types for the lights grid
 export enum LightType {
   None = 0,
-  CeilingLamp = 1,
-  WallSconce = 2,
-  FloorLamp = 3,
-}
-
-// Light configuration for the lights grid
-export interface LightConfig {
-  type: LightType;
-  color?: string;
-  intensity?: number;
-  distance?: number;
+  WarmLight = 1, // Warm yellowish light
+  CoolLight = 2, // Cool bluish light
+  BrightLight = 3, // Bright white light
+  DimLight = 4, // Dim ambient light
 }
 
 // Enemy types that can spawn in the level
@@ -34,20 +27,20 @@ export enum EnemyType {
 
 // Enemy spawn point definition
 export interface EnemySpawn {
-  position: [number, number];
+  position: [number, number]; // Grid coordinates [x, z]
   type: EnemyType;
-  rotation?: number;
+  rotation?: number; // Initial rotation in radians
 }
 
 // Level definition interface
 export interface LevelData {
-  grid: CellType[][];
-  lights?: (LightType | LightConfig)[][];
+  grid: CellType[][]; // 2D array representing the level layout
+  lights?: LightType[][]; // 2D array for light placements (using predefined light types)
   enemies: EnemySpawn[];
   name: string;
-  playerSpawn?: [number, number];
+  playerSpawn?: [number, number]; // Optional specific player spawn point [x, z]
 }
 
 // Cell size for converting grid coordinates to world coordinates
-export const CELL_SIZE = 2;
-export const WALL_HEIGHT = 2.5;
+export const CELL_SIZE = 2; // Each cell is 2x2 units
+export const WALL_HEIGHT = 2.5; // Standard wall height

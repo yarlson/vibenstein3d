@@ -7,6 +7,31 @@ interface LevelGridProps {
   level: LevelData;
 }
 
+// Predefined light configurations
+const LIGHT_CONFIGS = {
+  [LightType.None]: null,
+  [LightType.WarmLight]: {
+    color: '#ffaa55',
+    intensity: 2.5,
+    distance: 12,
+  },
+  [LightType.CoolLight]: {
+    color: '#aaddff',
+    intensity: 2.0,
+    distance: 15,
+  },
+  [LightType.BrightLight]: {
+    color: '#ffffff',
+    intensity: 3.5,
+    distance: 18,
+  },
+  [LightType.DimLight]: {
+    color: '#ffddcc',
+    intensity: 1.2,
+    distance: 8,
+  },
+};
+
 export const LevelGrid = ({ level }: LevelGridProps) => {
   // Memoize the wall positions to avoid recalculating every frame
   const walls = useMemo(() => {
@@ -38,29 +63,23 @@ export const LevelGrid = ({ level }: LevelGridProps) => {
   const ceilingLights = useMemo(() => {
     const lights: Array<{
       position: [number, number];
-      color?: string;
-      intensity?: number;
-      distance?: number;
+      color: string;
+      intensity: number;
+      distance: number;
     }> = [];
 
     // If we have a dedicated lights grid, use it
     if (level.lights) {
       level.lights.forEach((row, rowIndex) => {
-        row.forEach((cell, colIndex) => {
-          // Handle both simple type numbers and full config objects
-          if (cell) {
-            const lightType = typeof cell === 'number' ? cell : cell.type;
-            const config =
-              typeof cell === 'object'
-                ? cell
-                : { color: undefined, intensity: undefined, distance: undefined };
+        row.forEach((lightType, colIndex) => {
+          // Only process cells with defined light types
+          if (lightType !== LightType.None) {
+            const config = LIGHT_CONFIGS[lightType];
 
-            if (lightType === LightType.CeilingLamp) {
+            if (config) {
               lights.push({
                 position: [colIndex, rowIndex] as [number, number],
-                color: config.color || '#ffaa55',
-                intensity: config.intensity || 2.5,
-                distance: config.distance || 12,
+                ...config,
               });
             }
           }
@@ -71,11 +90,10 @@ export const LevelGrid = ({ level }: LevelGridProps) => {
       level.grid.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
           if (cell === CellType.CeilingLight) {
+            // Use warm light as default for backward compatibility
             lights.push({
               position: [colIndex, rowIndex] as [number, number],
-              color: '#ffaa55',
-              intensity: 2.5,
-              distance: 12,
+              ...LIGHT_CONFIGS[LightType.WarmLight],
             });
           }
         });

@@ -23,12 +23,11 @@ A modern first-person shooter game inspired by Wolfenstein 3D, built with React,
 
 ## Lighting System
 
-The game features a dynamic lighting system with:
+The game features a simple and effective lighting system with:
 
-- Customizable ceiling lights with different colors and intensities
-- Separate light grid for independent placement of light fixtures
-- Realistic light falloff and shadows
-- Support for different types of lights (ceiling lamps, wall sconces, etc.)
+- Four predefined ceiling light types (Warm, Cool, Bright, Dim)
+- Easy-to-use grid-based light placement, matching the level grid
+- Light grid matrix that directly corresponds to the level layout
 
 ## Getting Started
 
