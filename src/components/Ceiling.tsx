@@ -3,11 +3,11 @@ import { useMemo } from 'react';
 import { Mesh } from 'three';
 import { CELL_SIZE, WALL_HEIGHT } from '../types/level';
 
-// Calculate ceiling size based on a 10x10 grid, slightly larger to avoid gaps at edges
-const CEILING_SIZE = CELL_SIZE * 10 + 0.05;
-
-// Height of the ceiling from the floor - using WALL_HEIGHT constant for automatic adjustment
-const CEILING_HEIGHT = WALL_HEIGHT; // Ceiling positioned at wall height
+// Calculate ceiling size dynamically based on the scene
+interface CeilingSizeProps {
+  width?: number;
+  depth?: number;
+}
 
 // Light fixture configuration
 interface LightConfig {
@@ -19,13 +19,22 @@ interface LightConfig {
 
 interface CeilingProps {
   lights?: LightConfig[]; // Optional array of light configurations
+  size?: CeilingSizeProps; // Optional custom size for the ceiling
 }
 
-export const Ceiling = ({ lights = [] }: CeilingProps) => {
+export const Ceiling = ({ lights = [], size }: CeilingProps) => {
+  // Calculate ceiling size based on provided size or default to a reasonable size
+  // Adding a small buffer (0.05) to avoid gaps at the edges
+  const ceilingWidth = size?.width ? size.width + 0.05 : CELL_SIZE * 20 + 0.05;
+  const ceilingDepth = size?.depth ? size.depth + 0.05 : CELL_SIZE * 20 + 0.05;
+
+  // Use WALL_HEIGHT as the ceiling height
+  const ceilingHeight = WALL_HEIGHT;
+
   // Create a static plane for the ceiling
   const [ref] = usePlane<Mesh>(() => ({
     rotation: [Math.PI / 2, 0, 0], // Rotate to be horizontal but facing down
-    position: [0, CEILING_HEIGHT, 0],
+    position: [0, ceilingHeight, 0],
     type: 'Static',
   }));
 
@@ -40,56 +49,62 @@ export const Ceiling = ({ lights = [] }: CeilingProps) => {
 
   // Create edge trim positions to visually seal the gap between walls and ceiling
   const edgeTrim = useMemo(() => {
-    const halfSize = CEILING_SIZE / 2;
+    const halfWidth = ceilingWidth / 2;
+    const halfDepth = ceilingDepth / 2;
     const trimHeight = 0.05; // Height of the trim
     const trimThickness = 0.1; // Thickness of the trim
 
     return [
       // North edge
       {
-        position: [0, CEILING_HEIGHT - trimHeight / 2, -halfSize + trimThickness / 2],
-        size: [CEILING_SIZE, trimHeight, trimThickness],
+        position: [0, ceilingHeight - trimHeight / 2, -halfDepth + trimThickness / 2],
+        size: [ceilingWidth, trimHeight, trimThickness],
       },
       // South edge
       {
-        position: [0, CEILING_HEIGHT - trimHeight / 2, halfSize - trimThickness / 2],
-        size: [CEILING_SIZE, trimHeight, trimThickness],
+        position: [0, ceilingHeight - trimHeight / 2, halfDepth - trimThickness / 2],
+        size: [ceilingWidth, trimHeight, trimThickness],
       },
       // East edge
       {
-        position: [halfSize - trimThickness / 2, CEILING_HEIGHT - trimHeight / 2, 0],
-        size: [trimThickness, trimHeight, CEILING_SIZE],
+        position: [halfWidth - trimThickness / 2, ceilingHeight - trimHeight / 2, 0],
+        size: [trimThickness, trimHeight, ceilingDepth],
       },
       // West edge
       {
-        position: [-halfSize + trimThickness / 2, CEILING_HEIGHT - trimHeight / 2, 0],
-        size: [trimThickness, trimHeight, CEILING_SIZE],
+        position: [-halfWidth + trimThickness / 2, ceilingHeight - trimHeight / 2, 0],
+        size: [trimThickness, trimHeight, ceilingDepth],
       },
     ];
-  }, []);
+  }, [ceilingWidth, ceilingDepth, ceilingHeight]);
+
+  // Calculate grid centers for light positions
+  const gridCenterX = ceilingWidth / (2 * CELL_SIZE);
+  const gridCenterZ = ceilingDepth / (2 * CELL_SIZE);
 
   // Create light fixtures
   const lightFixtures = useMemo(() => {
     return lights.map((light, index) => {
       // Calculate world coordinates from grid position
-      const x = (light.position[0] - 5) * CELL_SIZE; // Center on a 10x10 grid
-      const z = (light.position[1] - 5) * CELL_SIZE;
+      // Adjust for the dynamic grid size by using the calculated grid centers
+      const x = (light.position[0] - gridCenterX) * CELL_SIZE;
+      const z = (light.position[1] - gridCenterZ) * CELL_SIZE;
 
       return {
-        position: [x, CEILING_HEIGHT - 0.05, z] as [number, number, number], // Just below ceiling
+        position: [x, ceilingHeight - 0.05, z] as [number, number, number], // Just below ceiling
         color: light.color || '#ffffff',
         intensity: light.intensity || 1,
         distance: light.distance || 10,
         key: `light-${index}`,
       };
     });
-  }, [lights]);
+  }, [lights, ceilingHeight, gridCenterX, gridCenterZ]);
 
   return (
     <group>
       {/* Ceiling plane */}
       <mesh ref={ref} receiveShadow>
-        <planeGeometry args={[CEILING_SIZE, CEILING_SIZE, 10, 10]} />
+        <planeGeometry args={[ceilingWidth, ceilingDepth, 10, 10]} />
         <meshStandardMaterial {...ceilingMaterial} wireframe={false} />
       </mesh>
 

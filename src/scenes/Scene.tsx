@@ -46,7 +46,7 @@ export const Scene = () => {
       dpr={[1, 1.5]}
     >
       {/* Minimal ambient light */}
-      <ambientLight intensity={0.3} />
+      <ambientLight intensity={1} />
 
       {/* Physics world */}
       <Physics gravity={[0, -9.81, 0]}>

@@ -28,6 +28,13 @@ export interface EnemySpawn {
   rotation?: number; // Initial rotation in radians
 }
 
+// Level dimensions
+export interface LevelDimensions {
+  width: number;
+  height: number;
+  depth: number;
+}
+
 // Level definition interface
 export interface LevelData {
   grid: CellType[][]; // 2D array representing the level layout
@@ -35,6 +42,7 @@ export interface LevelData {
   enemies: EnemySpawn[];
   name: string;
   playerSpawn?: [number, number]; // Optional specific player spawn point [x, z]
+  dimensions?: LevelDimensions; // Calculated dimensions of the level based on grid size
 }
 
 // Cell size for converting grid coordinates to world coordinates

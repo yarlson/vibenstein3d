@@ -58,6 +58,21 @@ const WALL_COLORS: {
 };
 
 export const LevelGrid = ({ level }: LevelGridProps) => {
+  // Calculate level dimensions if not already provided
+  const levelDimensions = useMemo(() => {
+    // Use level's dimensions if available
+    if (level.dimensions) {
+      return level.dimensions;
+    }
+
+    // Otherwise calculate from grid size
+    return {
+      width: level.grid[0].length * CELL_SIZE,
+      height: WALL_HEIGHT,
+      depth: level.grid.length * CELL_SIZE,
+    };
+  }, [level]);
+
   // Memoize the wall positions to avoid recalculating every frame
   const walls = useMemo(() => {
     const wallPositions: Array<{
@@ -156,7 +171,13 @@ export const LevelGrid = ({ level }: LevelGridProps) => {
       ))}
 
       {/* Ceiling with lights extracted from level data */}
-      <Ceiling lights={ceilingLights} />
+      <Ceiling
+        lights={ceilingLights}
+        size={{
+          width: levelDimensions.width,
+          depth: levelDimensions.depth,
+        }}
+      />
     </group>
   );
 };
