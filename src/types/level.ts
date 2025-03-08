@@ -2,6 +2,11 @@
 export enum CellType {
   Empty = 0,
   Wall = 1,
+  WallRed = 11,
+  WallBlue = 12,
+  WallGreen = 13,
+  WallYellow = 14,
+  WallPurple = 15,
   Door = 2,
   Key = 3,
   PlayerSpawn = 4,
