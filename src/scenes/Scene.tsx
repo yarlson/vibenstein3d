@@ -6,6 +6,7 @@ import { Floor } from '../components/Floor';
 import { LevelGrid } from '../components/LevelGrid';
 import { Stats } from '@react-three/drei';
 import { level1 } from '../levels/level1';
+import { EnemyManager } from '../components/EnemyManager';
 
 export const Scene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,6 +59,9 @@ export const Scene = () => {
 
         {/* Level Grid (includes walls and ceiling with lights) */}
         <LevelGrid level={level1} />
+        
+        {/* Enemy Manager */}
+        <EnemyManager level={level1} />
       </Physics>
 
       {/* Performance stats with custom className */}

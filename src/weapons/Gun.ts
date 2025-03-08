@@ -1,5 +1,6 @@
 import { Scene, Camera, Group, Mesh, Raycaster, Object3D, Vector3, Sphere } from 'three';
 import { GunEffects } from '../utils/GunEffects';
+import { Enemy } from '../entities/Enemy';
 
 interface Bunny {
   isDead: boolean;
@@ -12,7 +13,10 @@ declare global {
   interface Window {
     walls?: Object3D[];
     bunnies?: Bunny[];
+    enemies?: Enemy[];
     impactMarkers?: Mesh[];
+    particles?: Mesh[];
+    shakeCamera?: (intensity: number) => void;
   }
 }
 
@@ -167,6 +171,40 @@ export class Gun {
 
           // Apply damage to bunny
           bunny.takeDamage(bullet.userData.damage);
+          return true;
+        }
+      }
+    }
+
+    // Check for enemy collisions if they exist
+    if (window.enemies) {
+      for (const enemy of window.enemies) {
+        if (enemy.getIsDead()) continue;
+
+        const enemyPosition = enemy.getPosition();
+        
+        // Create a simple bounding sphere for collision detection
+        const enemyRadius = 1;
+        const enemySphere = new Sphere(enemyPosition, enemyRadius);
+
+        if (enemySphere.containsPoint(bullet.position)) {
+          bullet.userData.alive = false;
+
+          // Create impact effect
+          this.effects.createImpactEffect(
+            bullet.position.clone(),
+            bullet.userData.direction.clone().negate(),
+            null
+          );
+
+          // Apply damage to enemy
+          enemy.takeDamage(bullet.userData.damage);
+          
+          // Shake camera for feedback
+          if (window.shakeCamera) {
+            window.shakeCamera(0.2);
+          }
+          
           return true;
         }
       }

@@ -20,6 +20,13 @@ interface GameState {
   // Player position for minimap
   playerPosition: [number, number, number];
   updatePlayerPosition: (position: [number, number, number]) => void;
+  
+  // Player health system
+  playerHealth: number;
+  maxPlayerHealth: number;
+  takeDamage: (amount: number) => void;
+  healPlayer: (amount: number) => void;
+  isPlayerDead: boolean;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -28,10 +35,19 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   collectKey: () => set((state) => ({ keysCollected: state.keysCollected + 1 })),
 
-  openDoor: (doorId: string) =>
-    set((state) => ({
-      doorsOpen: new Set([...state.doorsOpen, doorId]),
-    })),
+  openDoor: (doorId: string) => {
+    const { keysCollected, doorsOpen } = get();
+    
+    if (keysCollected > doorsOpen.size) {
+      set((state) => {
+        const newDoorsOpen = new Set(state.doorsOpen);
+        newDoorsOpen.add(doorId);
+        return { doorsOpen: newDoorsOpen };
+      });
+      return true;
+    }
+    return false;
+  },
 
   isDoorOpen: (doorId: string) => get().doorsOpen.has(doorId),
 
@@ -102,6 +118,29 @@ export const useGameStore = create<GameState>((set, get) => ({
         ...state.ammo,
         [weapon]: Math.min(state.ammo[weapon] + amount, WEAPON_STATS[weapon].maxAmmo),
       },
+    }));
+  },
+
+  // Player health system
+  playerHealth: 100,
+  maxPlayerHealth: 100,
+  isPlayerDead: false,
+  
+  takeDamage: (amount) => {
+    set((state) => {
+      const newHealth = Math.max(0, state.playerHealth - amount);
+      const isPlayerDead = newHealth <= 0;
+      
+      return {
+        playerHealth: newHealth,
+        isPlayerDead,
+      };
+    });
+  },
+  
+  healPlayer: (amount) => {
+    set((state) => ({
+      playerHealth: Math.min(state.maxPlayerHealth, state.playerHealth + amount),
     }));
   },
 }));
