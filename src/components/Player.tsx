@@ -6,7 +6,7 @@ import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
 
-const MOVE_SPEED = 20;
+const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
 const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 6;
@@ -28,6 +28,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     fixedRotation: true,
     userData: { type: 'player' },
     linearDamping: DAMPING,
+    material: { friction: 0.1 },
   }));
 
   const { camera } = useThree();

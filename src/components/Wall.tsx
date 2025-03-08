@@ -16,6 +16,7 @@ export const Wall = ({ position, size = [1, WALL_HEIGHT, 1], color = '#553222' }
     position,
     args: size,
     userData: { type: 'wall', health: 100 }, // Add health for destructible walls
+    material: { friction: 0.05 }, // Added reduced friction (lower than player for smoother sliding)
   }));
 
   // Add wall to window.walls array for bullet collision

@@ -11,6 +11,7 @@ export const Floor = () => {
     rotation: [-Math.PI / 2, 0, 0], // Rotate to be horizontal
     position: [0, 0, 0],
     type: 'Static',
+    material: { friction: 0.05 }, // Added reduced friction to match walls
   }));
 
   return (
