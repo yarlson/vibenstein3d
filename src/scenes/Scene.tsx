@@ -4,7 +4,7 @@ import { Physics } from '@react-three/cannon';
 import { Player, PLAYER_HEIGHT } from '../components/Player';
 import { Floor } from '../components/Floor';
 import { LevelGrid } from '../components/LevelGrid';
-import { Sky, Stats } from '@react-three/drei';
+import { Stats } from '@react-three/drei';
 import { level1 } from '../levels/level1';
 
 export const Scene = () => {
@@ -20,12 +20,10 @@ export const Scene = () => {
       }}
       style={{ width: '100%', height: '100%' }}
       shadows
+      dpr={[1, 1.5]}
     >
-      {/* Sky for better visuals */}
-      <Sky sunPosition={[100, -10, 100]} />
-
       {/* Minimal ambient light */}
-      <ambientLight intensity={0.05} />
+      <ambientLight intensity={0.3} />
 
       {/* Physics world */}
       <Physics gravity={[0, -9.81, 0]}>
