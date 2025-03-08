@@ -12,6 +12,17 @@ const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 6;
 const DAMPING = 0.2;
 
+// Extend the Window interface to include our mobile control handlers
+declare global {
+  interface Window {
+    mobileControlHandlers?: {
+      onMove: (x: number, y: number) => void;
+      onJump: () => void;
+      onStopMove: () => void;
+    };
+  }
+}
+
 interface PlayerProps {
   spawnPosition?: [number, number];
 }
@@ -43,6 +54,13 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     left: false,
     right: false,
     jump: false,
+  });
+
+  // Mobile joystick movement values
+  const [mobileMovement, setMobileMovement] = useState({
+    x: 0, // Left/right (-1 to 1)
+    y: 0, // Forward/backward (-1 to 1)
+    active: false,
   });
 
   const velocity = useRef<Vector3>(new Vector3());
@@ -113,19 +131,72 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     };
   }, []);
 
-  useFrame(() => {
-    // Compute horizontal movement direction based on camera rotation
-    const direction = new Vector3();
-    const frontVector = new Vector3(0, 0, Number(movement.backward) - Number(movement.forward));
-    const sideVector = new Vector3(Number(movement.left) - Number(movement.right), 0, 0);
-    direction
-      .subVectors(frontVector, sideVector)
-      .normalize()
-      .multiplyScalar(MOVE_SPEED)
-      .applyEuler(camera.rotation);
+  // Mobile control handlers
+  const handleMobileMove = (x: number, y: number) => {
+    setMobileMovement({
+      x,
+      y,
+      active: true,
+    });
+  };
 
-    // Only update horizontal velocity; keep the vertical velocity intact for jumping/gravity.
-    api.velocity.set(direction.x, velocity.current.y, direction.z);
+  const handleMobileJump = () => {
+    if (onGround) {
+      api.applyImpulse([0, JUMP_FORCE, 0], [0, 0, 0]);
+    }
+  };
+
+  const handleMobileStopMove = () => {
+    setMobileMovement({
+      x: 0,
+      y: 0,
+      active: false,
+    });
+  };
+
+  // Export mobile control handlers to window for access from MobileControls component
+  useEffect(() => {
+    window.mobileControlHandlers = {
+      onMove: handleMobileMove,
+      onJump: handleMobileJump,
+      onStopMove: handleMobileStopMove,
+    };
+
+    return () => {
+      window.mobileControlHandlers = undefined;
+    };
+  }, []);
+
+  useFrame(() => {
+    // Compute direction based on input type
+    const direction = new Vector3();
+
+    if (mobileMovement.active) {
+      // Mobile controls - use the joystick values directly
+      // Note: y is inverted because positive y is backward in our game
+      direction.set(-mobileMovement.x, 0, -mobileMovement.y);
+    } else {
+      // Keyboard controls - use the boolean movement state
+      const frontVector = new Vector3(0, 0, Number(movement.backward) - Number(movement.forward));
+      const sideVector = new Vector3(Number(movement.left) - Number(movement.right), 0, 0);
+      direction.subVectors(frontVector, sideVector);
+    }
+
+    if (direction.length() > 0) {
+      direction.normalize().multiplyScalar(MOVE_SPEED).applyEuler(camera.rotation);
+
+      // Only update horizontal velocity; keep the vertical velocity intact for jumping/gravity.
+      api.velocity.set(direction.x, velocity.current.y, direction.z);
+    } else if (
+      !mobileMovement.active &&
+      !movement.forward &&
+      !movement.backward &&
+      !movement.left &&
+      !movement.right
+    ) {
+      // No movement input - stop horizontal movement but keep vertical
+      api.velocity.set(0, velocity.current.y, 0);
+    }
 
     // Handle jump with an impulse (if on ground)
     if (movement.jump && onGround) {

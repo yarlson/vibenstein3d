@@ -1,0 +1,283 @@
+import { useEffect, useState } from 'react';
+import { useGameStore } from '../state/gameStore';
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+export const MobileControls = () => {
+  const [joystickActive, setJoystickActive] = useState(false);
+  const [joystickStart, setJoystickStart] = useState<Position>({ x: 0, y: 0 });
+  const [joystickCurrent, setJoystickCurrent] = useState<Position>({ x: 0, y: 0 });
+  const { shoot, reload } = useGameStore();
+
+  // Max distance the joystick can move
+  const maxJoystickDistance = 50;
+
+  // Handle touch events for the joystick
+  useEffect(() => {
+    // Skip all touch handlers if device doesn't support touch
+    if (!('ontouchstart' in window)) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Check if touch is in the left half of the screen for movement
+      if (e.touches[0].clientX < window.innerWidth / 2) {
+        setJoystickActive(true);
+        setJoystickStart({
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        });
+        setJoystickCurrent({
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        });
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (joystickActive) {
+        // Find the touch that started the joystick
+        for (let i = 0; i < e.touches.length; i++) {
+          const touch = e.touches[i];
+
+          // Check if this touch is in the left half of screen (our joystick area)
+          if (touch.clientX < window.innerWidth / 2) {
+            setJoystickCurrent({
+              x: touch.clientX,
+              y: touch.clientY,
+            });
+
+            // Calculate direction vector
+            let deltaX = touch.clientX - joystickStart.x;
+            let deltaY = touch.clientY - joystickStart.y;
+
+            // Normalize to maxJoystickDistance
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (distance > maxJoystickDistance) {
+              deltaX = (deltaX / distance) * maxJoystickDistance;
+              deltaY = (deltaY / distance) * maxJoystickDistance;
+            }
+
+            // Normalize to values between -1 and 1 for movement
+            const normalizedX = deltaX / maxJoystickDistance;
+            const normalizedY = deltaY / maxJoystickDistance;
+
+            // Call the movement handler if available
+            if (window.mobileControlHandlers?.onMove) {
+              window.mobileControlHandlers.onMove(normalizedX, normalizedY);
+            }
+
+            break;
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      // Check if all touches in left half are gone
+      let leftSideTouchExists = false;
+
+      for (let i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].clientX < window.innerWidth / 2) {
+          leftSideTouchExists = true;
+          break;
+        }
+      }
+
+      if (!leftSideTouchExists) {
+        setJoystickActive(false);
+        if (window.mobileControlHandlers?.onStopMove) {
+          window.mobileControlHandlers.onStopMove();
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [joystickActive, joystickStart]);
+
+  // Event handler for right half of screen
+  useEffect(() => {
+    if (!('ontouchstart' in window)) return;
+
+    const handleRightSideTouch = (e: TouchEvent) => {
+      // Check if touch is in the right half of the screen
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        if (touch.clientX >= window.innerWidth / 2) {
+          // If touch is in the top part of right side, jump
+          if (touch.clientY < window.innerHeight / 2) {
+            if (window.mobileControlHandlers?.onJump) {
+              window.mobileControlHandlers.onJump();
+            }
+          } else {
+            // If touch is in the bottom part of right side, shoot
+            shoot();
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleRightSideTouch);
+
+    return () => {
+      window.removeEventListener('touchstart', handleRightSideTouch);
+    };
+  }, [shoot]);
+
+  // Only render on touch devices
+  if (!('ontouchstart' in window)) {
+    return null;
+  }
+
+  // Calculate joystick styles
+  const joystickBaseStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: '80px',
+    bottom: '80px',
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    border: '2px solid rgba(255, 255, 255, 0.5)',
+    transform: 'translate(-50%, 50%)',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  };
+
+  const joystickKnobStyle: React.CSSProperties = {
+    position: 'absolute',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    top: '50%',
+    left: '50%',
+    transform: joystickActive
+      ? `translate(calc(-50% + ${joystickCurrent.x - joystickStart.x}px), calc(-50% + ${
+          joystickCurrent.y - joystickStart.y
+        }px))`
+      : 'translate(-50%, -50%)',
+    transition: joystickActive ? 'none' : 'transform 0.2s ease-out',
+    zIndex: 1001,
+    pointerEvents: 'none',
+  };
+
+  const jumpButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    right: '80px',
+    top: '80px',
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(120, 220, 120, 0.5)',
+    border: '2px solid rgba(120, 220, 120, 0.7)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'white',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    transform: 'translate(50%, -50%)',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  };
+
+  const shootButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    right: '80px',
+    bottom: '80px',
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(220, 120, 120, 0.5)',
+    border: '2px solid rgba(220, 120, 120, 0.7)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'white',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    transform: 'translate(50%, 50%)',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  };
+
+  const reloadButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    right: '180px',
+    bottom: '80px',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(120, 120, 220, 0.5)',
+    border: '2px solid rgba(120, 120, 220, 0.7)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    transform: 'translate(50%, 50%)',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  };
+
+  return (
+    <>
+      {/* Joystick */}
+      <div style={joystickBaseStyle}>
+        <div style={joystickKnobStyle}></div>
+      </div>
+
+      {/* Jump button */}
+      <div style={jumpButtonStyle}>JUMP</div>
+
+      {/* Shoot button */}
+      <div style={shootButtonStyle}>FIRE</div>
+
+      {/* Reload button */}
+      <div style={reloadButtonStyle} onClick={reload}>
+        RELOAD
+      </div>
+
+      {/* Left side touch area - fullscreen but invisible */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '50%',
+          height: '100%',
+          zIndex: 999,
+          pointerEvents: 'auto',
+        }}
+      ></div>
+
+      {/* Right side touch area - fullscreen but invisible */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: '50%',
+          height: '100%',
+          zIndex: 999,
+          pointerEvents: 'auto',
+        }}
+      ></div>
+    </>
+  );
+};

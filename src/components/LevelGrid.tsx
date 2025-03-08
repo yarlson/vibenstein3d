@@ -70,12 +70,14 @@ export const LevelGrid = ({ level }: LevelGridProps) => {
     level.grid.forEach((row, rowIndex) => {
       row.forEach((cell, colIndex) => {
         // Check if the cell is any type of wall (regular wall or colored walls)
-        if (cell === CellType.Wall || 
-            cell === CellType.WallRed || 
-            cell === CellType.WallBlue || 
-            cell === CellType.WallGreen || 
-            cell === CellType.WallYellow || 
-            cell === CellType.WallPurple) {
+        if (
+          cell === CellType.Wall ||
+          cell === CellType.WallRed ||
+          cell === CellType.WallBlue ||
+          cell === CellType.WallGreen ||
+          cell === CellType.WallYellow ||
+          cell === CellType.WallPurple
+        ) {
           // Convert grid coordinates to world coordinates
           const x = (colIndex - level.grid[0].length / 2) * CELL_SIZE;
           const z = (rowIndex - level.grid.length / 2) * CELL_SIZE;
@@ -150,12 +152,7 @@ export const LevelGrid = ({ level }: LevelGridProps) => {
     <group>
       {/* Render all walls */}
       {walls.map((wall, index) => (
-        <Wall 
-          key={`wall-${index}`} 
-          position={wall.position} 
-          size={wall.size}
-          color={wall.color} 
-        />
+        <Wall key={`wall-${index}`} position={wall.position} size={wall.size} color={wall.color} />
       ))}
 
       {/* Ceiling with lights extracted from level data */}

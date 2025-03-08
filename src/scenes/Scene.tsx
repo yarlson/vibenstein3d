@@ -9,7 +9,7 @@ import { level1 } from '../levels/level1';
 
 export const Scene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Apply class to Stats component when it's mounted
   useEffect(() => {
     // Find the Stats panel in the DOM
@@ -17,7 +17,7 @@ export const Scene = () => {
     if (statsPanel) {
       statsPanel.classList.add('stats-panel');
     }
-    
+
     // Remove class when component unmounts
     return () => {
       const statsPanel = document.querySelector('.stats');
@@ -35,12 +35,12 @@ export const Scene = () => {
         rotation: [0, 0, 0],
         fov: 75,
       }}
-      style={{ 
+      style={{
         position: 'absolute',
         top: 0,
         left: 0,
-        width: '100vw', 
-        height: '100vh' 
+        width: '100vw',
+        height: '100vh',
       }}
       shadows
       dpr={[1, 1.5]}

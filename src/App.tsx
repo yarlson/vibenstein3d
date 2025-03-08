@@ -1,5 +1,6 @@
 import { Scene } from './scenes/Scene';
 import { HUD } from './components/HUD';
+import { MobileControls } from './components/MobileControls';
 import './App.css';
 
 function App() {
@@ -7,6 +8,7 @@ function App() {
     <div className="app">
       <Scene />
       <HUD />
+      <MobileControls />
     </div>
   );
 }
