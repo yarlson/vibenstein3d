@@ -25,11 +25,14 @@ export const Minimap: React.FC = () => {
 
   // Convert world coordinates to minimap coordinates
   const worldToMinimap = (x: number, z: number, canvasSize: number) => {
-    // The level grid is offset in the world, so we need to adjust
-    const gridX = Math.floor(x / CELL_SIZE + 5);
-    const gridZ = Math.floor(z / CELL_SIZE + 5);
+    const gridWidth = level1.grid[0].length;
+    const gridHeight = level1.grid.length;
 
-    const mapCellSize = canvasSize / level1.grid[0].length;
+    // Convert world coordinates to grid coordinates using the actual grid dimensions
+    const gridX = Math.floor(x / CELL_SIZE + gridWidth / 2);
+    const gridZ = Math.floor(z / CELL_SIZE + gridHeight / 2);
+
+    const mapCellSize = canvasSize / gridWidth;
 
     return {
       x: gridX * mapCellSize,
