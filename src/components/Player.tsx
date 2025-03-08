@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBox } from '@react-three/cannon';
 import { Mesh, Vector3 } from 'three';
@@ -33,11 +33,12 @@ interface PlayerProps {
   spawnPosition?: [number, number];
 }
 
-export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
+// Expose the player's mesh ref to parent components
+export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] }, ref) => {
   const worldX = (spawnPosition[0] - 5) * CELL_SIZE;
   const worldZ = (spawnPosition[1] - 5) * CELL_SIZE;
 
-  const [ref, api] = useBox<Mesh>(() => ({
+  const [playerRef, api] = useBox<Mesh>(() => ({
     mass: 1,
     type: 'Dynamic',
     position: [worldX, PLAYER_HEIGHT / 2, worldZ],
@@ -47,6 +48,9 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     linearDamping: DAMPING,
     material: { friction: 0.1 },
   }));
+
+  // Forward the internal ref to the external ref
+  useImperativeHandle(ref, () => playerRef.current as Mesh);
 
   const { camera } = useThree();
   const controlsRef = useRef(null);
@@ -287,15 +291,15 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     }
 
     // Update camera position to follow the player's physics body
-    if (ref.current) {
-      ref.current.getWorldPosition(camera.position);
+    if (playerRef.current) {
+      playerRef.current.getWorldPosition(camera.position);
       camera.position.y += PLAYER_HEIGHT * 0.5; // Position camera at eye level
     }
   });
 
   return (
     <>
-      <mesh ref={ref} visible={false}>
+      <mesh ref={playerRef} visible={false}>
         <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
@@ -305,4 +309,4 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       </primitive>
     </>
   );
-};
+});
