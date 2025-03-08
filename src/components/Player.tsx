@@ -23,6 +23,9 @@ declare global {
     mobileCameraControls?: {
       rotateCameraY: (amount: number) => void;
     };
+    playerMovement?: {
+      setJump: (jump: boolean) => void;
+    };
   }
 }
 
@@ -69,14 +72,31 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
   const velocity = useRef<Vector3>(new Vector3());
   const [onGround, setOnGround] = useState(true);
+  const playerPosition = useRef<[number, number, number]>([0, 0, 0]);
 
   useEffect(() => {
-    return api.velocity.subscribe((v) => {
-      velocity.current.set(v[0], v[1], v[2]);
-      // Determine if on the ground by checking the vertical velocity
-      setOnGround(Math.abs(v[1]) < 0.1);
+    // Subscribe to position updates
+    const unsubscribePosition = api.position.subscribe((p) => {
+      playerPosition.current = p;
     });
-  }, [api.velocity]);
+
+    // Subscribe to velocity updates
+    const unsubscribeVelocity = api.velocity.subscribe((v) => {
+      velocity.current.set(v[0], v[1], v[2]);
+
+      // If y velocity is very small and we're close to the ground level,
+      // consider the player on the ground
+      const isNearGround = playerPosition.current[1] < PLAYER_HEIGHT / 1.8;
+      const hasLowVerticalVelocity = Math.abs(v[1]) < 0.1;
+
+      setOnGround(hasLowVerticalVelocity && isNearGround);
+    });
+
+    return () => {
+      unsubscribeVelocity();
+      unsubscribePosition();
+    };
+  }, [api.velocity, api.position]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,20 +170,22 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   const handleMobileJump = useCallback(() => {
     // Only jump if on ground and not in cooldown
     if (onGround && !jumpCooldown) {
-      // Apply stronger impulse for mobile to make it more noticeable
-      api.applyImpulse([0, JUMP_FORCE * 1.2, 0], [0, 0, 0]);
+      // Get current velocity to preserve horizontal movement
+      const currentVel = velocity.current;
+
+      // Apply direct velocity change instead of impulse
+      api.velocity.set(currentVel.x, JUMP_FORCE * 1.2, currentVel.z);
+
+      // Also apply an impulse for extra force
+      api.applyImpulse([0, JUMP_FORCE * 0.8, 0], [0, 0, 0]);
 
       // Set cooldown to prevent jump spamming
       setJumpCooldown(true);
       setTimeout(() => {
         setJumpCooldown(false);
       }, 500); // 500ms cooldown
-
-      console.log('Mobile jump triggered!');
-    } else {
-      console.log('Jump not triggered. On ground:', onGround, 'Cooldown:', jumpCooldown);
     }
-  }, [onGround, jumpCooldown, api]);
+  }, [onGround, jumpCooldown, api, velocity]);
 
   const handleMobileStopMove = useCallback(() => {
     setMobileMovement({
@@ -205,6 +227,20 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     };
   }, [handleMobileMove, handleMobileJump, handleMobileStopMove, handleCameraRotation]);
 
+  // Export player movement API to window
+  useEffect(() => {
+    // Expose player movement controls to window for mobile controls
+    window.playerMovement = {
+      setJump: (jump: boolean) => {
+        setMovement((prev) => ({ ...prev, jump }));
+      },
+    };
+
+    return () => {
+      window.playerMovement = undefined;
+    };
+  }, []);
+
   useFrame(() => {
     // Compute direction based on input type
     const direction = new Vector3();
@@ -238,7 +274,15 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
     // Handle jump with an impulse (if on ground)
     if (movement.jump && onGround) {
-      api.applyImpulse([0, JUMP_FORCE, 0], [0, 0, 0]);
+      // Get current velocity to preserve horizontal movement
+      const currentVel = velocity.current;
+
+      // Apply direct velocity change
+      api.velocity.set(currentVel.x, JUMP_FORCE, currentVel.z);
+
+      // Also apply an impulse for extra force
+      api.applyImpulse([0, JUMP_FORCE * 0.5, 0], [0, 0, 0]);
+
       setMovement((prev) => ({ ...prev, jump: false }));
     }
 

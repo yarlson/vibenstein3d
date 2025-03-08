@@ -17,11 +17,16 @@ export const Weapon = () => {
     gunRef.current = new Pistol(scene, camera);
     gunRef.current.create();
 
+    // Expose gun instance to window for mobile controls
+    window.gunInstance = gunRef.current;
+
     return () => {
       // Cleanup when component unmounts
       if (gunRef.current?.mesh) {
         camera.remove(gunRef.current.mesh);
       }
+      // Remove reference from window object
+      window.gunInstance = undefined;
     };
   }, [scene, camera]);
 

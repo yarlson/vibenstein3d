@@ -6,11 +6,23 @@ interface Position {
   y: number;
 }
 
+// Interface for mobile control buttons with custom properties
+interface MobileControlButton extends HTMLDivElement {
+  onTouchEnd?: () => void;
+}
+
 // Extend Window interface to include camera controls
 declare global {
   interface Window {
     mobileCameraControls?: {
       rotateCameraY: (amount: number) => void;
+    };
+    gunInstance?: {
+      startFiring: () => void;
+      stopFiring: () => void;
+    };
+    playerMovement?: {
+      setJump: (jump: boolean) => void;
     };
   }
 }
@@ -143,8 +155,6 @@ export const MobileControls = () => {
               x: touch.clientX,
               y: touch.clientY,
             };
-          } else {
-            console.log('Touch on control button detected, not starting camera rotation');
           }
         }
       }
@@ -244,7 +254,6 @@ export const MobileControls = () => {
         const target = e.target as Element;
         if (target?.closest('.mobile-control-button') || target?.id?.includes('mobile-')) {
           // Skip handling, let the button handle it
-          console.log('Touch on control, skipping document handler');
           return;
         }
         handleTouchStart(e);
@@ -276,7 +285,7 @@ export const MobileControls = () => {
       label: string,
       action: (e: TouchEvent) => void
     ) => {
-      const button = document.createElement('div');
+      const button = document.createElement('div') as MobileControlButton;
       button.id = id;
       button.innerText = label;
       button.setAttribute('class', 'mobile-control-button');
@@ -287,23 +296,55 @@ export const MobileControls = () => {
         button.style[key] = value;
       });
 
-      // Setup event handler - using both touchstart and mousedown for better response
+      // Add active state visual feedback
       button.addEventListener(
         'touchstart',
         (e) => {
-          console.log(`${id} touchstart event fired`);
           e.preventDefault();
           e.stopPropagation(); // Stop event from bubbling up
+
+          // Add visual feedback
+          button.style.transform = button.style.transform.replace(
+            'translate',
+            'scale(0.9) translate'
+          );
+          button.style.opacity = '0.8';
+
+          // Call the action
           action(e);
         },
         { passive: false }
       );
 
+      button.addEventListener('touchend', () => {
+        // Remove visual feedback
+        button.style.transform = button.style.transform.replace('scale(0.9) ', '');
+        button.style.opacity = '1';
+
+        // For fire button, we need to stop firing
+        if (id === 'mobile-fire-button' && button.onTouchEnd) {
+          button.onTouchEnd();
+        }
+      });
+
       button.addEventListener('mousedown', (e) => {
-        console.log(`${id} mousedown event fired`);
         e.preventDefault();
         e.stopPropagation();
+
+        // Add visual feedback
+        button.style.transform = button.style.transform.replace(
+          'translate',
+          'scale(0.9) translate'
+        );
+        button.style.opacity = '0.8';
+
         action(e as unknown as TouchEvent);
+      });
+
+      button.addEventListener('mouseup', () => {
+        // Remove visual feedback
+        button.style.transform = button.style.transform.replace('scale(0.9) ', '');
+        button.style.opacity = '1';
       });
 
       document.body.appendChild(button);
@@ -314,8 +355,21 @@ export const MobileControls = () => {
     const handleJump = (e: TouchEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      // Call the jump handler from mobile controls
       if (window.mobileControlHandlers?.onJump) {
         window.mobileControlHandlers.onJump();
+      }
+
+      // ALSO directly set movement state to trigger jump in useFrame
+      if (window.playerMovement) {
+        window.playerMovement.setJump(true);
+        // Reset jump state after a short delay
+        setTimeout(() => {
+          if (window.playerMovement) {
+            window.playerMovement.setJump(false);
+          }
+        }, 50);
       }
     };
 
@@ -323,7 +377,22 @@ export const MobileControls = () => {
     const handleFire = (e: TouchEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      // Call the shoot function from the game store
       shoot();
+
+      // Directly trigger the weapon firing by accessing the weapon object
+      if (window.gunInstance?.startFiring) {
+        window.gunInstance.startFiring();
+      }
+    };
+
+    // Fire button release handler
+    const handleFireRelease = () => {
+      // Stop firing when button is released
+      if (window.gunInstance?.stopFiring) {
+        window.gunInstance.stopFiring();
+      }
     };
 
     // Reload button handler
@@ -407,6 +476,9 @@ export const MobileControls = () => {
           handleFire
         )
       );
+
+      // Store the touchend handler in the button's custom property
+      (buttons[buttons.length - 1] as MobileControlButton).onTouchEnd = handleFireRelease;
 
       buttons.push(
         createButton(
