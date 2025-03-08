@@ -133,7 +133,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
   // Add a jump cooldown to prevent spamming
   const [jumpCooldown, setJumpCooldown] = useState(false);
-  
+
   // Mobile control handlers with useCallback to prevent unnecessary re-renders
   const handleMobileMove = useCallback((x: number, y: number) => {
     setMobileMovement({
@@ -142,23 +142,23 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       active: true,
     });
   }, []);
-  
+
   const handleMobileJump = useCallback(() => {
     // Only jump if on ground and not in cooldown
     if (onGround && !jumpCooldown) {
       // Apply stronger impulse for mobile to make it more noticeable
       api.applyImpulse([0, JUMP_FORCE * 1.2, 0], [0, 0, 0]);
-      
+
       // Set cooldown to prevent jump spamming
       setJumpCooldown(true);
       setTimeout(() => {
         setJumpCooldown(false);
       }, 500); // 500ms cooldown
-      
+
       console.log('Mobile jump triggered!');
     }
   }, [onGround, jumpCooldown, api]);
-  
+
   const handleMobileStopMove = useCallback(() => {
     setMobileMovement({
       x: 0,
@@ -172,9 +172,9 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     window.mobileControlHandlers = {
       onMove: handleMobileMove,
       onJump: handleMobileJump,
-      onStopMove: handleMobileStopMove
+      onStopMove: handleMobileStopMove,
     };
-    
+
     return () => {
       window.mobileControlHandlers = undefined;
     };

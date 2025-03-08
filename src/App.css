@@ -31,6 +31,25 @@ body {
   z-index: 1000 !important;
 }
 
+/* Make the Stats panel responsive */
+@media screen and (max-width: 768px) {
+  .stats-panel {
+    transform: scale(0.6) !important;
+    transform-origin: top left !important;
+  }
+  
+  .stats-panel > canvas {
+    height: auto !important;
+  }
+}
+
+/* Optimize for very small screens */
+@media screen and (max-width: 480px) {
+  .stats-panel {
+    transform: scale(0.5) !important;
+  }
+}
+
 /* Hide any unused styles */
 /* 
 .logo {

@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Vibenstein ThreeD</title>
     <style>
       * {
@@ -18,11 +20,46 @@
       /* Prevent unwanted double-tap to zoom */
       body {
         touch-action: pan-x pan-y;
+        background-color: #000;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      /* Fullscreen polyfill for older browsers */
+      .fullscreen-api-polyfill {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        z-index: 2147483647;
+        background-color: #000;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Fullscreen API polyfill
+      if (!document.fullscreenEnabled &&
+          !document.webkitFullscreenEnabled &&
+          !document.mozFullScreenEnabled &&
+          !document.msFullscreenEnabled) {
+        Element.prototype.requestFullscreen = Element.prototype.requestFullscreen || 
+          Element.prototype.webkitRequestFullscreen ||
+          Element.prototype.mozRequestFullScreen ||
+          Element.prototype.msRequestFullscreen;
+        
+        document.exitFullscreen = document.exitFullscreen || 
+          document.webkitExitFullscreen ||
+          document.mozCancelFullScreen ||
+          document.msExitFullscreen;
+      }
+    </script>
   </body>
 </html>

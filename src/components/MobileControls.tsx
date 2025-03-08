@@ -11,6 +11,34 @@ export const MobileControls = () => {
   const [joystickStart, setJoystickStart] = useState<Position>({ x: 0, y: 0 });
   const [joystickCurrent, setJoystickCurrent] = useState<Position>({ x: 0, y: 0 });
   const { shoot, reload } = useGameStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Check fullscreen status when component mounts and on change
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      // Enter fullscreen
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   // Max distance the joystick can move
   const maxJoystickDistance = 50;
@@ -111,56 +139,71 @@ export const MobileControls = () => {
   useEffect(() => {
     if (!('ontouchstart' in window)) return;
 
-    // Jump button handler 
+    // Jump button handler
     const handleJumpTouch = (e: TouchEvent) => {
       e.preventDefault(); // Prevent default behavior
       if (window.mobileControlHandlers?.onJump) {
         window.mobileControlHandlers.onJump();
       }
     };
-    
+
     // Shoot button handler
     const handleShootTouch = (e: TouchEvent) => {
       e.preventDefault(); // Prevent default behavior
       shoot();
     };
-    
+
     // Reload button handler
     const handleReloadTouch = (e: TouchEvent) => {
       e.preventDefault(); // Prevent default behavior
       reload();
     };
-    
+
+    // Fullscreen button handler
+    const handleFullscreenTouch = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default behavior
+      toggleFullscreen();
+    };
+
     // Get the buttons after they're rendered
     const jumpButton = document.getElementById('mobile-jump-button');
     const shootButton = document.getElementById('mobile-shoot-button');
     const reloadButton = document.getElementById('mobile-reload-button');
-    
+    const fullscreenButton = document.getElementById('mobile-fullscreen-button');
+
     // Add event listeners to the specific buttons
     if (jumpButton) {
       jumpButton.addEventListener('touchstart', handleJumpTouch);
     }
-    
+
     if (shootButton) {
       shootButton.addEventListener('touchstart', handleShootTouch);
     }
-    
+
     if (reloadButton) {
       reloadButton.addEventListener('touchstart', handleReloadTouch);
     }
-    
+
+    if (fullscreenButton) {
+      fullscreenButton.addEventListener('touchstart', handleFullscreenTouch);
+    }
+
     return () => {
       // Clean up event listeners
       if (jumpButton) {
         jumpButton.removeEventListener('touchstart', handleJumpTouch);
       }
-      
+
       if (shootButton) {
         shootButton.removeEventListener('touchstart', handleShootTouch);
       }
-      
+
       if (reloadButton) {
         reloadButton.removeEventListener('touchstart', handleReloadTouch);
+      }
+
+      if (fullscreenButton) {
+        fullscreenButton.removeEventListener('touchstart', handleFullscreenTouch);
       }
     };
   }, [shoot, reload]);
@@ -260,6 +303,24 @@ export const MobileControls = () => {
     zIndex: 1000,
   };
 
+  const fullscreenButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: '20px',
+    top: '20px',
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(80, 80, 80, 0.6)',
+    border: '2px solid rgba(120, 120, 120, 0.7)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'white',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    zIndex: 1000,
+  };
+
   return (
     <>
       {/* Joystick */}
@@ -268,27 +329,23 @@ export const MobileControls = () => {
       </div>
 
       {/* Jump button */}
-      <div 
-        id="mobile-jump-button"
-        style={jumpButtonStyle}
-      >
+      <div id="mobile-jump-button" style={jumpButtonStyle}>
         JUMP
       </div>
 
       {/* Shoot button */}
-      <div 
-        id="mobile-shoot-button"
-        style={shootButtonStyle}
-      >
+      <div id="mobile-shoot-button" style={shootButtonStyle}>
         FIRE
       </div>
 
       {/* Reload button */}
-      <div 
-        id="mobile-reload-button"
-        style={reloadButtonStyle}
-      >
+      <div id="mobile-reload-button" style={reloadButtonStyle}>
         RELOAD
+      </div>
+
+      {/* Fullscreen button */}
+      <div id="mobile-fullscreen-button" style={fullscreenButtonStyle}>
+        {isFullscreen ? '✕' : '⛶'}
       </div>
 
       {/* Left side touch area - fullscreen but invisible */}
