@@ -10,6 +10,7 @@ import {
   Float32BufferAttribute,
   PlaneGeometry,
 } from 'three';
+import { useGameStore } from '../state/gameStore';
 
 export class GunEffects {
   private scene: Scene;
@@ -79,6 +80,8 @@ export class GunEffects {
   }
 
   createImpactEffect(position: Vector3, normal: Vector3, hitObject: Mesh | null): void {
+    console.log("Creating impact effect:", { position, normal, hitObject: hitObject ? 'exists' : 'null' });
+    
     // Create impact flash
     const flashGeometry = new SphereGeometry(0.1, 8, 8);
     const flashMaterial = new MeshBasicMaterial({
@@ -94,29 +97,53 @@ export class GunEffects {
     // Add to scene
     this.scene.add(flash);
 
-    // Create impact mark if we hit an object
-    if (hitObject) {
-      const markSize = 0.2;
+    // Create impact mark if we hit a valid wall object (not an enemy or floor)
+    if (hitObject && hitObject.userData && hitObject.userData.type === 'wall') {
+      console.log("Creating impact mark on wall:", { 
+        hitObjectType: hitObject.userData?.type || 'unknown',
+        hitObjectParent: hitObject.parent ? 'exists' : 'null'
+      });
+      
+      // Create a slightly larger mark for better visibility
+      const markSize = 0.3;
       const markGeometry = new PlaneGeometry(markSize, markSize);
       const markMaterial = new MeshBasicMaterial({
         color: 0x111111,
         transparent: true,
         opacity: 0.8,
-        depthWrite: false,
+        depthWrite: false, // Prevents z-fighting
+        side: 2 // DoubleSide - visible from both sides
       });
       const mark = new Mesh(markGeometry, markMaterial);
 
-      // Position and rotate mark
-      mark.position.copy(position).addScaledVector(normal, 0.01); // Offset slightly to avoid z-fighting
-      mark.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), normal);
+      // Ensure the normal is normalized
+      const normalizedNormal = normal.clone().normalize();
+      
+      // Position mark slightly in front of the impact point along the normal
+      // to avoid z-fighting with the wall
+      mark.position.copy(position).addScaledVector(normalizedNormal, 0.01);
+      
+      // Set up the rotation to align with the normal
+      // We need the mark to face outward from the surface it hit
+      if (normalizedNormal.lengthSq() > 0) {
+        // Find rotation that aligns with the normal
+        mark.lookAt(position.clone().add(normalizedNormal));
+        // Adjust rotation to face outward from the surface
+        mark.rotateY(Math.PI); // Rotate 180 degrees
+      }
 
       // Store reference to hit object for cleanup
       mark.userData.parentObject = hitObject;
+      // Add creation time for lifetime tracking
+      mark.userData.createdAt = performance.now();
+      mark.userData.lifetime = 0;
+      mark.userData.maxLifetime = 5; // 5 seconds lifetime
 
-      // Add to scene and tracking array
+      // Add to scene and add to game store for tracking
       this.scene.add(mark);
-      window.impactMarkers = window.impactMarkers || [];
-      window.impactMarkers.push(mark);
+      const gameStore = useGameStore.getState();
+      gameStore.addImpactMarker(mark);  // Use the dedicated impact marker function
+      console.log("Impact marker added to store, total markers:", gameStore.impactMarkers.length);
 
       // Fade out mark over time
       const startTime = performance.now();
@@ -131,11 +158,9 @@ export class GunEffects {
           requestAnimationFrame(fadeMark);
         } else if (mark.parent) {
           this.scene.remove(mark);
-          const markers = window.impactMarkers || [];
-          const index = markers.indexOf(mark);
-          if (index !== -1) {
-            markers.splice(index, 1);
-          }
+          // Remove from game store using the impact marker function
+          const gameStore = useGameStore.getState();
+          gameStore.removeImpactMarker(mark);
         }
       };
 

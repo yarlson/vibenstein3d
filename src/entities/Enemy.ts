@@ -183,6 +183,13 @@ export class Enemy extends Animal {
     this.mesh = new THREE.Group();
     this.mesh.position.copy(this.position);
     this.scene.add(this.mesh);
+    
+    // Add userData to identify as enemy and track alive status
+    this.mesh.userData = { 
+      type: 'enemy', 
+      alive: this.alive,
+      id: this.id
+    };
 
     // Apply scale
     this.mesh.scale.set(this.scale, this.scale, this.scale);
@@ -519,6 +526,11 @@ export class Enemy extends Animal {
 
     // Mark enemy as not alive
     this.alive = false;
+    
+    // Also update the mesh userData
+    if (this.mesh) {
+      this.mesh.userData.alive = false;
+    }
 
     // Immediately disable update logic
     // (For extra safety, override update so that even if called, nothing happens)

@@ -123,6 +123,8 @@ export class Pistol extends Gun {
       alive: true,
       damage: this.damage,
       trailLength: this.bulletTrailLength,
+      startPosition: barrelTip.clone(),
+      previousPosition: barrelTip.clone(),
     };
 
     // Create bullet trail

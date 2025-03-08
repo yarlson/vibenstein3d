@@ -27,6 +27,11 @@ interface GameState {
   addParticle: (particle: THREE.Mesh) => void;
   removeParticle: (particle: THREE.Mesh) => void;
   
+  // Impact markers (separate from particles)
+  impactMarkers: THREE.Mesh[];
+  addImpactMarker: (marker: THREE.Mesh) => void;
+  removeImpactMarker: (marker: THREE.Mesh) => void;
+  
   // Walls for collision detection
   walls: THREE.Object3D[];
   addWall: (wall: THREE.Object3D) => void;
@@ -139,6 +144,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   })),
   removeParticle: (particle) => set((state) => ({ 
     particles: state.particles.filter(p => p !== particle) 
+  })),
+  
+  // Impact markers
+  impactMarkers: [],
+  addImpactMarker: (marker) => set((state) => ({ 
+    impactMarkers: [...state.impactMarkers, marker] 
+  })),
+  removeImpactMarker: (marker) => set((state) => ({ 
+    impactMarkers: state.impactMarkers.filter(m => m !== marker) 
   })),
   
   // Walls

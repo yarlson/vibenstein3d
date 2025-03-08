@@ -25,7 +25,9 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
     walls, 
     setShakeCamera, 
     particles, 
-    removeParticle 
+    removeParticle,
+    impactMarkers,
+    removeImpactMarker
   } = useGameStore();
 
   // Function to spawn an enemy, memoized with useCallback
@@ -201,6 +203,42 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
           scene.remove(particle);
           removeParticle(particle);
         }
+      }
+    }
+
+    // Check for impact markers with parent objects that no longer exist
+    if (impactMarkers.length > 0) {
+      console.log(`Checking ${impactMarkers.length} impact markers`);
+      for (let i = impactMarkers.length - 1; i >= 0; i--) {
+        const marker = impactMarkers[i];
+        
+        // If the marker doesn't have a parent object, skip checking
+        if (!marker.userData.parentObject) {
+          continue;
+        }
+        
+        const parentObject = marker.userData.parentObject;
+        
+        // Check if parentObject still exists in scene
+        if (!parentObject.parent) {
+          console.log("Removing impact marker - parent object removed from scene");
+          scene.remove(marker);
+          removeImpactMarker(marker);
+          continue;
+        }
+        
+        // Check if parentObject is an enemy that died
+        if (parentObject.userData && 
+            parentObject.userData.type === 'enemy' && 
+            !parentObject.userData.alive) {
+          console.log("Removing impact marker - enemy died");
+          scene.remove(marker);
+          removeImpactMarker(marker);
+          continue;
+        }
+        
+        // For wall objects, keep the marker (they're removed by the fade timeout)
+        // No additional checks needed for walls as they are static
       }
     }
   });

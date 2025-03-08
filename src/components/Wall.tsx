@@ -2,6 +2,7 @@ import { useBox } from '@react-three/cannon';
 import { Mesh } from 'three';
 import { useEffect } from 'react';
 import { WALL_HEIGHT } from '../types/level';
+import { useGameStore } from '../state/gameStore';
 
 interface WallProps {
   position: [number, number, number];
@@ -10,6 +11,9 @@ interface WallProps {
 }
 
 export const Wall = ({ position, size = [1, WALL_HEIGHT, 1], color = '#553222' }: WallProps) => {
+  // Get the add/remove wall functions from gameStore
+  const { addWall, removeWall } = useGameStore();
+
   // Create a static box for the wall
   const [ref] = useBox<Mesh>(() => ({
     type: 'Static',
@@ -19,31 +23,21 @@ export const Wall = ({ position, size = [1, WALL_HEIGHT, 1], color = '#553222' }
     material: { friction: 0.05 }, // Added reduced friction (lower than player for smoother sliding)
   }));
 
-  // Add wall to window.walls array for bullet collision
+  // Add wall to gameStore walls array for bullet collision
   useEffect(() => {
     if (!ref.current) return;
 
     // Store reference to the current mesh for use in cleanup
     const currentMesh = ref.current;
 
-    // Initialize walls array if it doesn't exist
-    if (!window.walls) {
-      window.walls = [];
-    }
+    // Add wall to gameStore
+    addWall(currentMesh);
 
-    // Add wall to array
-    window.walls.push(currentMesh);
-
-    // Remove wall from array when component unmounts
+    // Remove wall from gameStore when component unmounts
     return () => {
-      if (window.walls) {
-        const index = window.walls.indexOf(currentMesh);
-        if (index !== -1) {
-          window.walls.splice(index, 1);
-        }
-      }
+      removeWall(currentMesh);
     };
-  }, [ref]);
+  }, [ref, addWall, removeWall]);
 
   return (
     <mesh ref={ref} castShadow receiveShadow>
