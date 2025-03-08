@@ -53,10 +53,6 @@ export const level1: LevelData = {
 
   // More enemies for the expanded level
   enemies: [
-    { position: [2, 8], type: EnemyType.Grunt },
-    { position: [7, 7], type: EnemyType.Guard, rotation: Math.PI },
-    { position: [12, 5], type: EnemyType.Grunt },
-    { position: [6, 11], type: EnemyType.Guard, rotation: Math.PI / 2 },
     { position: [15, 14], type: EnemyType.Grunt },
     { position: [3, 16], type: EnemyType.Boss, rotation: -Math.PI / 4 },
   ],

@@ -1,12 +1,12 @@
 import { Canvas } from '@react-three/fiber';
-import { useRef, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Physics } from '@react-three/cannon';
 import { Player, PLAYER_HEIGHT } from '../components/Player';
 import { Floor } from '../components/Floor';
 import { LevelGrid } from '../components/LevelGrid';
 import { AdaptiveDpr, Stats } from '@react-three/drei';
 import { level1 } from '../levels/level1';
-import { EnemyManager } from '../components/EnemyManager';
+import { EnemyController } from '../components/EnemyController.tsx';
 
 export const Scene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,8 +61,8 @@ export const Scene = () => {
         {/* Level Grid (includes walls and ceiling with lights) */}
         <LevelGrid level={level1} />
 
-        {/* Enemy Manager */}
-        <EnemyManager level={level1} />
+        {/* Enemy Controller - replacement for EnemyManager */}
+        <EnemyController level={level1} />
       </Physics>
 
       {/* Performance stats with custom className */}

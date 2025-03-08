@@ -373,6 +373,7 @@ export class Enemy extends Animal {
   }
 
   private shoot(): void {
+    console.log(`[ENEMY ${this.id}] Shooting`);
     if (!this.parts.gun || !this.alive) {
       return;
     }
@@ -784,6 +785,7 @@ export class Enemy extends Animal {
         // Remove enemy instance from store
         const enemyStore = useEnemyStore.getState();
         // We keep the enemy data in the store (for UI, etc.) but mark it as dead
+        console.log(`[ENEMY ${this.id}] Removing from store`);
         enemyStore.removeEnemyInstance(this);
 
         // Destroy the enemy after death effects complete
@@ -1167,6 +1169,7 @@ export class Enemy extends Animal {
 
       // Clean up bullets
       this.bullets.forEach((bullet) => {
+        console.log(`[ENEMY] Destroying bullet: ${bullet.userData.createdBy}`);
         if (bullet && bullet.parent) {
           this.scene.remove(bullet);
         }
@@ -1198,6 +1201,11 @@ export class Enemy extends Animal {
   // Getter for ID
   getId(): string {
     return this.id;
+  }
+
+  // Getter for mesh
+  getMesh(): THREE.Group {
+    return this.mesh;
   }
 
   // Add this method for compatibility with the Gun class
