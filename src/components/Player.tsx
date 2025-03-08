@@ -6,6 +6,7 @@ import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
 import { usePlayerStore } from '../state/playerStore';
+import { level1 } from '../levels/level1';
 
 const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
@@ -13,15 +14,17 @@ const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 6;
 const DAMPING = 0.2;
 
-// No longer need to extend Window interface as we're using Zustand store
-
 interface PlayerProps {
   spawnPosition?: [number, number];
 }
 
 export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
-  const worldX = (spawnPosition[0] - 5) * CELL_SIZE;
-  const worldZ = (spawnPosition[1] - 5) * CELL_SIZE;
+  // Calculate grid dimensions from level data
+  const gridWidth = level1.grid[0].length;
+  const gridHeight = level1.grid.length;
+  // Adjust spawn position so that (0,0) is at the center of the level grid.
+  const worldX = (spawnPosition[0] - gridWidth / 2) * CELL_SIZE;
+  const worldZ = (spawnPosition[1] - gridHeight / 2) * CELL_SIZE;
 
   const [ref, api] = useBox<Mesh>(() => ({
     mass: 1,
@@ -39,7 +42,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
   useEffect(() => {
     // Change initial rotation to face 270 degrees from original (90 degrees more than before)
-    camera.rotation.set(0, Math.PI + Math.PI/3, 0); // or 3*Math.PI/2
+    camera.rotation.set(0, Math.PI + Math.PI / 3, 0);
   }, [camera]);
 
   const [movement, setMovement] = useState({
@@ -71,7 +74,6 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     // Subscribe to position updates
     const unsubscribePosition = api.position.subscribe((p) => {
       playerPosition.current = p;
-
       // Update the player position in the Zustand store
       updatePlayerPosition(p);
     });
@@ -168,18 +170,15 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     if (onGround && !jumpCooldown) {
       // Get current velocity to preserve horizontal movement
       const currentVel = velocity.current;
-
       // Apply direct velocity change instead of impulse
       api.velocity.set(currentVel.x, JUMP_FORCE * 1.2, currentVel.z);
-
       // Also apply an impulse for extra force
       api.applyImpulse([0, JUMP_FORCE * 0.8, 0], [0, 0, 0]);
-
       // Set cooldown to prevent jump spamming
       setJumpCooldown(true);
       setTimeout(() => {
         setJumpCooldown(false);
-      }, 500); // 500ms cooldown
+      }, 500);
     }
   }, [onGround, jumpCooldown, api, velocity]);
 
@@ -193,33 +192,25 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
   // Handle mobile camera rotation
   const handleCameraRotation = useCallback(
-    (amount: number) => {
-      if (controlsRef.current) {
-        // Get current rotation
-        const current = camera.rotation.y;
-
-        // Apply rotation
-        camera.rotation.y = current + amount;
-      }
-    },
-    [camera]
+      (amount: number) => {
+        if (controlsRef.current) {
+          const current = camera.rotation.y;
+          camera.rotation.y = current + amount;
+        }
+      },
+      [camera]
   );
 
-  // Store mobile control handlers in Zustand store instead of window
+  // Store mobile control handlers in Zustand store
   useEffect(() => {
-    // Set mobile control handlers in the store
     setMobileControlHandlers({
       onMove: handleMobileMove,
       onJump: handleMobileJump,
       onStopMove: handleMobileStopMove,
     });
-
-    // Set camera controls in the store
     setCameraControls({
       rotateCameraY: handleCameraRotation,
     });
-
-    // No need to clean up as the store will persist
   }, [
     handleMobileMove,
     handleMobileJump,
@@ -229,22 +220,18 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     setCameraControls,
   ]);
 
-  // Store player movement API in Zustand store instead of window
+  // Store player movement API in Zustand store
   useEffect(() => {
-    // Set player movement in the store
     setPlayerMovement({
       setJump: (jump: boolean) => {
         setMovement((prev) => ({ ...prev, jump }));
       },
     });
-
-    // No need to clean up as the store will persist
   }, [setPlayerMovement]);
 
   useFrame(() => {
     // Compute direction based on input type
     const direction = new Vector3();
-
     if (mobileMovement.active) {
       // Mobile controls - use the joystick values directly
       // Note: y is inverted because positive y is backward in our game
@@ -258,58 +245,49 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
     if (direction.length() > 0) {
       direction.normalize().multiplyScalar(MOVE_SPEED).applyEuler(camera.rotation);
-
-      // Only update horizontal velocity; keep the vertical velocity intact for jumping/gravity.
+      // Only update horizontal velocity; keep the vertical velocity intact
       api.velocity.set(direction.x, velocity.current.y, direction.z);
     } else if (
-      !mobileMovement.active &&
-      !movement.forward &&
-      !movement.backward &&
-      !movement.left &&
-      !movement.right
+        !mobileMovement.active &&
+        !movement.forward &&
+        !movement.backward &&
+        !movement.left &&
+        !movement.right
     ) {
-      // No movement input - stop horizontal movement but keep vertical
       api.velocity.set(0, velocity.current.y, 0);
     }
 
     // Handle jump with an impulse (if on ground)
     if (movement.jump && onGround) {
-      // Get current velocity to preserve horizontal movement
       const currentVel = velocity.current;
-
-      // Apply direct velocity change
       api.velocity.set(currentVel.x, JUMP_FORCE, currentVel.z);
-
-      // Also apply an impulse for extra force
       api.applyImpulse([0, JUMP_FORCE * 0.5, 0], [0, 0, 0]);
-
       setMovement((prev) => ({ ...prev, jump: false }));
     }
 
     // Update camera position to follow the player's physics body
     if (ref.current) {
       ref.current.getWorldPosition(camera.position);
-      camera.position.y += PLAYER_HEIGHT * 0.5; // Position camera at eye level
+      camera.position.y += PLAYER_HEIGHT * 0.5;
     }
 
     // Update position from physics
     api.position.subscribe((position) => {
       playerPosition.current = [position[0], position[1], position[2]];
-      // Report position to player store for minimap
       updatePlayerPosition(playerPosition.current);
     });
   });
 
   return (
-    <>
-      <mesh ref={ref} visible={false}>
-        <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
-        <meshStandardMaterial color="red" transparent opacity={0.5} />
-      </mesh>
-      <PointerLockControls ref={controlsRef} />
-      <primitive object={camera}>
-        <Weapon />
-      </primitive>
-    </>
+      <>
+        <mesh ref={ref} visible={false}>
+          <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
+          <meshStandardMaterial color="red" transparent opacity={0.5} />
+        </mesh>
+        <PointerLockControls ref={controlsRef} />
+        <primitive object={camera}>
+          <Weapon />
+        </primitive>
+      </>
   );
 };
