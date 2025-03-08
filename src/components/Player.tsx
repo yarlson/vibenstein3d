@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBox } from '@react-three/cannon';
 import { Mesh, Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
+import { useGameStore } from '../state/gameStore';
 
 const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
@@ -33,12 +34,11 @@ interface PlayerProps {
   spawnPosition?: [number, number];
 }
 
-// Expose the player's mesh ref to parent components
-export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] }, ref) => {
+export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   const worldX = (spawnPosition[0] - 5) * CELL_SIZE;
   const worldZ = (spawnPosition[1] - 5) * CELL_SIZE;
 
-  const [playerRef, api] = useBox<Mesh>(() => ({
+  const [ref, api] = useBox<Mesh>(() => ({
     mass: 1,
     type: 'Dynamic',
     position: [worldX, PLAYER_HEIGHT / 2, worldZ],
@@ -48,9 +48,6 @@ export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] },
     linearDamping: DAMPING,
     material: { friction: 0.1 },
   }));
-
-  // Forward the internal ref to the external ref
-  useImperativeHandle(ref, () => playerRef.current as Mesh);
 
   const { camera } = useThree();
   const controlsRef = useRef(null);
@@ -76,7 +73,10 @@ export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] },
 
   const velocity = useRef<Vector3>(new Vector3());
   const [onGround, setOnGround] = useState(true);
-  const playerPosition = useRef<[number, number, number]>([0, 0, 0]);
+  const playerPosition = useRef<[number, number, number]>([worldX, PLAYER_HEIGHT / 2, worldZ]);
+
+  // Add this to track and update player position
+  const updatePlayerPosition = useGameStore((state) => state.updatePlayerPosition);
 
   useEffect(() => {
     // Subscribe to position updates
@@ -291,15 +291,22 @@ export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] },
     }
 
     // Update camera position to follow the player's physics body
-    if (playerRef.current) {
-      playerRef.current.getWorldPosition(camera.position);
+    if (ref.current) {
+      ref.current.getWorldPosition(camera.position);
       camera.position.y += PLAYER_HEIGHT * 0.5; // Position camera at eye level
     }
+
+    // Update position from physics
+    api.position.subscribe((position) => {
+      playerPosition.current = [position[0], position[1], position[2]];
+      // Report position to game store for minimap
+      updatePlayerPosition(playerPosition.current);
+    });
   });
 
   return (
     <>
-      <mesh ref={playerRef} visible={false}>
+      <mesh ref={ref} visible={false}>
         <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
@@ -309,4 +316,4 @@ export const Player = forwardRef<Mesh, PlayerProps>(({ spawnPosition = [0, 0] },
       </primitive>
     </>
   );
-});
+};

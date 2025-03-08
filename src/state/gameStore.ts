@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { WeaponType, WEAPON_STATS } from '../types/weapons';
-import { Object3D } from 'three';
 
 interface GameState {
   keysCollected: number;
@@ -18,12 +17,9 @@ interface GameState {
   reload: () => void;
   addAmmo: (weapon: WeaponType, amount: number) => void;
 
-  // Radar related state
-  radarEnemies: React.RefObject<Object3D>[];
-  radarItems: React.RefObject<Object3D>[];
-  registerRadarEnemy: (enemyRef: React.RefObject<Object3D>) => void;
-  registerRadarItem: (itemRef: React.RefObject<Object3D>) => void;
-  clearRadarEntities: () => void;
+  // Player position for minimap
+  playerPosition: [number, number, number];
+  updatePlayerPosition: (position: [number, number, number]) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -47,6 +43,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   isReloading: false,
   lastShotTime: 0,
+
+  // Initialize player position
+  playerPosition: [0, 0, 0],
+  updatePlayerPosition: (position: [number, number, number]) => set({ playerPosition: position }),
 
   switchWeapon: (weapon: WeaponType) => {
     if (!get().isReloading) {
@@ -103,28 +103,5 @@ export const useGameStore = create<GameState>((set, get) => ({
         [weapon]: Math.min(state.ammo[weapon] + amount, WEAPON_STATS[weapon].maxAmmo),
       },
     }));
-  },
-
-  // Radar related state
-  radarEnemies: [],
-  radarItems: [],
-  
-  registerRadarEnemy: (enemyRef: React.RefObject<Object3D>) => {
-    set((state) => ({
-      radarEnemies: [...state.radarEnemies, enemyRef]
-    }));
-  },
-  
-  registerRadarItem: (itemRef: React.RefObject<Object3D>) => {
-    set((state) => ({
-      radarItems: [...state.radarItems, itemRef]
-    }));
-  },
-  
-  clearRadarEntities: () => {
-    set({
-      radarEnemies: [],
-      radarItems: []
-    });
   },
 }));
