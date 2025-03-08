@@ -120,7 +120,6 @@ export class Enemy extends Animal {
   private bulletColor: number;
   private scale: number;
   private audioContext: AudioContext | null;
-  private sounds: { [key: string]: AudioBuffer | null };
 
   // Unique identifier for the enemy
   private id: string;
@@ -172,28 +171,13 @@ export class Enemy extends Animal {
 
       if (AudioContextConstructor) {
         this.audioContext = new AudioContextConstructor();
-        this.sounds = {
-          shoot: null,
-          hit: null,
-          death: null,
-        };
         this.loadSounds();
       } else {
         this.audioContext = null;
-        this.sounds = {
-          shoot: null,
-          hit: null,
-          death: null,
-        };
       }
     } catch (error) {
       // Log the error and continue
       this.audioContext = null;
-      this.sounds = {
-        shoot: null,
-        hit: null,
-        death: null,
-      };
       console.log('Error initializing audio context:', error);
     }
   }
@@ -810,8 +794,6 @@ export class Enemy extends Animal {
     // Check if enemy is dead after taking damage
     if (this.health <= 0 && this.alive) {
       this.die();
-    } else {
-      console.log(`Enemy survived with ${this.health} health remaining`);
     }
   }
 
@@ -967,13 +949,6 @@ export class Enemy extends Animal {
         console.error('Error stopping audio:', error);
       }
     }
-
-    // Clear all sound buffers
-    this.sounds = {
-      shoot: null,
-      hit: null,
-      death: null,
-    };
   }
 
   private cleanupBullets(): void {
@@ -983,12 +958,7 @@ export class Enemy extends Animal {
     this.bullets = [];
   }
 
-  // Global method to load sounds (stub implementation)
-  private loadSounds(): void {
-    if (this.audioContext && this.sounds) {
-      console.log('Sound system initialized with', Object.keys(this.sounds).length, 'sound slots');
-    }
-  }
+  private loadSounds(): void {}
 
   getHealth(): number {
     return this.health;

@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { LevelData, EnemySpawn } from '../types/level';
 import { Enemy } from '../entities/Enemy';
-import { useEnemyStore } from '../state/enemyStore';
+import { useEnemyStore, resetEnemyStore } from '../state/enemyStore';
 import { useGameStore } from '../state/gameStore';
 
 interface EnemyManagerProps {
@@ -23,6 +23,114 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
   const { addEnemyInstance, removeEnemyInstance } = useEnemyStore();
   const { walls, setShakeCamera, particles, removeParticle, impactMarkers, removeImpactMarker } =
     useGameStore();
+
+  // Helper function to update the enemy store
+  const updateEnemyStore = useCallback((enemy: Enemy) => {
+    try {
+      if (!enemy) {
+        return false;
+      }
+
+      // Validate enemy has required methods
+      if (
+        typeof enemy.getId !== 'function' ||
+        typeof enemy.getHealth !== 'function' ||
+        typeof enemy.getIsDead !== 'function'
+      ) {
+        return false;
+      }
+
+      const attemptUpdate = (retryCount = 0, maxRetries = 3) => {
+        // Get the store from Zustand
+        const enemyStore = useEnemyStore.getState();
+
+        // Check if enemy is already in the store
+        const existingEnemyData = enemyStore.enemies.find((e) => e.id === enemy.getId());
+        const existingEnemyInstance = enemyStore.enemyInstances.includes(enemy);
+
+        if (existingEnemyData && existingEnemyInstance) {
+          return true;
+        }
+
+        // Capture store before modification for comparison
+        const beforeEnemies = [...enemyStore.enemies];
+        const beforeInstances = [...enemyStore.enemyInstances];
+
+        // Add enemy data
+        enemyStore.addEnemy({
+          id: enemy.getId(),
+          health: enemy.getHealth(),
+          isAlive: !enemy.getIsDead(),
+        });
+
+        // Immediately verify if the store state changed
+        const afterEnemyData = useEnemyStore.getState().enemies;
+
+        if (afterEnemyData.length <= beforeEnemies.length) {
+          if (retryCount < maxRetries) {
+            return attemptUpdate(retryCount + 1, maxRetries);
+          }
+
+          // Try to force update the state directly as a fallback
+          try {
+            useEnemyStore.setState((state) => ({
+              enemies: [
+                ...state.enemies,
+                {
+                  id: enemy.getId(),
+                  health: enemy.getHealth(),
+                  isAlive: !enemy.getIsDead(),
+                },
+              ],
+            }));
+          } catch (e) {
+            console.error('updateEnemyStore: Force update failed:', e);
+          }
+        }
+
+        // Add enemy instance
+        enemyStore.addEnemyInstance(enemy);
+
+        // Immediately verify if the store state changed
+        const afterEnemyInstances = useEnemyStore.getState().enemyInstances;
+
+        if (afterEnemyInstances.length <= beforeInstances.length) {
+          if (retryCount < maxRetries) {
+            return attemptUpdate(retryCount + 1, maxRetries);
+          }
+
+          // Try to force update the state directly as a fallback
+          try {
+            useEnemyStore.setState((state) => ({
+              enemyInstances: [...state.enemyInstances, enemy],
+            }));
+          } catch (e) {
+            console.error('updateEnemyStore: Force update failed:', e);
+          }
+        }
+
+        // Schedule a check to verify the enemy remains in the store
+        setTimeout(() => {
+          const currentStore = useEnemyStore.getState();
+          const stillInStoreData = currentStore.enemies.some((e) => e.id === enemy.getId());
+          const stillInStoreInstance = currentStore.enemyInstances.includes(enemy);
+
+          if (!stillInStoreData || !stillInStoreInstance) {
+            if (retryCount < maxRetries) {
+              return attemptUpdate(retryCount + 1, maxRetries);
+            }
+          }
+        }, 100);
+
+        return true;
+      };
+
+      return attemptUpdate();
+    } catch (error) {
+      console.log('updateEnemyStore: Error updating enemy store:', error);
+      return false;
+    }
+  }, []);
 
   // Function to spawn an enemy, memoized with useCallback
   const spawnEnemy = useCallback(
@@ -48,25 +156,10 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
       // Add to local enemies array
       enemiesRef.current.push(enemy);
 
-      // Add to enemy store - BOTH data and instance
-      try {
-        // Get the store from Zustand
-        const enemyStore = useEnemyStore.getState();
-
-        // Add enemy data
-        enemyStore.addEnemy({
-          id: enemy.getId(),
-          health: enemy.getHealth(),
-          isAlive: !enemy.getIsDead(),
-        });
-
-        // Add enemy instance
-        enemyStore.addEnemyInstance(enemy);
-      } catch (error) {
-        console.error('Error adding enemy to store:', error);
-      }
+      // Add to enemy store using our helper function
+      updateEnemyStore(enemy);
     },
-    [scene, camera]
+    [scene, camera, updateEnemyStore]
   );
 
   // Function to shake the camera, memoized with useCallback
@@ -104,7 +197,7 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
     if (initialized.current) return;
     initialized.current = true;
 
-    // CRITICAL DEBUG: Reset enemy store before adding new enemies to clear any stale state
+    // Reset enemy store only if it contains stale data
     try {
       const enemyStore = useEnemyStore.getState();
       // Get initial counts
@@ -113,10 +206,8 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
 
       // If we have stale data, clear it
       if (initialEnemyCount > 0 || initialInstanceCount > 0) {
-        useEnemyStore.setState({
-          enemies: [],
-          enemyInstances: [],
-        });
+        // Use the safe reset method instead of direct setState
+        resetEnemyStore();
       }
     } catch (e) {
       console.error('Error resetting enemy store:', e);
@@ -133,32 +224,48 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
     // Store the shakeCamera function in the game store
     setShakeCamera(shakeCamera);
 
-    // Spawn initial enemies based on level data
+    // Set up store subscription to monitor for changes
+    const unsubscribe = useEnemyStore.subscribe(() => {});
+
+    // Set interval to periodically check the status and repair if needed
+    const statusInterval = setInterval(() => {
+      const enemyStore = useEnemyStore.getState();
+
+      // Check for and repair any mismatch between local refs and store
+      if (
+        enemiesRef.current.length > 0 &&
+        (enemyStore.enemies.length !== enemiesRef.current.length ||
+          enemyStore.enemyInstances.length !== enemiesRef.current.length)
+      ) {
+        // Only attempt repair if there are no enemies in store but we have local enemies
+        if (
+          enemyStore.enemies.length === 0 &&
+          enemyStore.enemyInstances.length === 0 &&
+          enemiesRef.current.length > 0
+        ) {
+          // Restore all enemies to store
+          enemiesRef.current.forEach((enemy) => {
+            updateEnemyStore(enemy);
+          });
+        }
+      }
+    }, 500);
+
     level.enemies.forEach((spawnData) => {
       spawnEnemy(spawnData);
     });
 
-    // Make sure enemies are in the store
+    // Verify enemies are in the store after initialization
     setTimeout(() => {
       const enemyStore = useEnemyStore.getState();
 
       if (enemyStore.enemyInstances.length === 0 && enemiesRef.current.length > 0) {
-        // Force-add enemies to store
-        enemiesRef.current.forEach((enemy) => {
-          // Add enemy data
-          enemyStore.addEnemy({
-            id: enemy.getId(),
-            health: enemy.getHealth(),
-            isAlive: !enemy.getIsDead(),
-          });
-
-          // Add enemy instance
-          enemyStore.addEnemyInstance(enemy);
-        });
+        // Verify final store state
+        useEnemyStore.getState();
       }
     }, 1000); // Check after 1 second to make sure initialization is complete
 
-    // DEBUG: Add key press handler to test damaging enemies
+    // DEBUG: Add key press handler to test damaging enemies and view store state
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
         if (enemiesRef.current.length > 0) {
@@ -168,6 +275,50 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
         } else {
           console.log('No enemies to damage');
         }
+      } else if (e.key === 'F3') {
+        // Test enemy store state
+        const enemyStore = useEnemyStore.getState();
+        console.log('==== ENEMY STORE DEBUG ====');
+        console.log(`Local enemies ref count: ${enemiesRef.current.length}`);
+        console.log(`Store enemy data count: ${enemyStore.enemies.length}`);
+        console.log(`Store enemy instances count: ${enemyStore.enemyInstances.length}`);
+
+        // Check if the counts match
+        if (
+          enemiesRef.current.length !== enemyStore.enemies.length ||
+          enemiesRef.current.length !== enemyStore.enemyInstances.length
+        ) {
+          console.warn('WARNING: Mismatch between local ref and store counts!');
+
+          // Log detailed info for debugging
+          console.log(
+            'Local enemies:',
+            enemiesRef.current.map((e) => ({ id: e.getId(), health: e.getHealth() }))
+          );
+          console.log('Store enemy data:', enemyStore.enemies);
+          console.log(
+            'Store enemy instances:',
+            enemyStore.enemyInstances.map((e) => ({ id: e.getId(), health: e.getHealth() }))
+          );
+
+          // Try to fix the mismatch by updating the store
+          console.log('Attempting to fix mismatch by updating store...');
+          let count = 0;
+          enemiesRef.current.forEach((enemy) => {
+            // Check if this enemy is already in the store
+            const enemyInStore = enemyStore.enemies.find((e) => e.id === enemy.getId());
+            const instanceInStore = enemyStore.enemyInstances.includes(enemy);
+
+            if (!enemyInStore || !instanceInStore) {
+              updateEnemyStore(enemy);
+              count++;
+            }
+          });
+          console.log(`Added ${count} missing enemies to store`);
+        } else {
+          console.log('Status: Local ref and store counts match!');
+        }
+        console.log('==========================');
       }
     };
 
@@ -175,6 +326,9 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
 
     return () => {
       // Clean up enemies when component unmounts
+      clearInterval(statusInterval);
+      unsubscribe();
+
       enemiesRef.current.forEach((enemy) => {
         try {
           // Destroy the enemy
@@ -207,6 +361,7 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
     setShakeCamera,
     addEnemyInstance,
     removeEnemyInstance,
+    updateEnemyStore,
   ]);
 
   // Update enemies every frame
