@@ -281,7 +281,9 @@ export const MobileControls = () => {
 
   // Limit joystick movement radius
   const maxRadius = 50;
-  const distance = Math.sqrt(joystickOffset.x * joystickOffset.x + joystickOffset.y * joystickOffset.y);
+  const distance = Math.sqrt(
+    joystickOffset.x * joystickOffset.x + joystickOffset.y * joystickOffset.y
+  );
   const limitedOffset =
     distance > maxRadius
       ? {

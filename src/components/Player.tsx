@@ -70,7 +70,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     // Subscribe to position updates
     const unsubscribePosition = api.position.subscribe((p) => {
       playerPosition.current = p;
-      
+
       // Update the player position in the Zustand store
       updatePlayerPosition(p);
     });
@@ -219,7 +219,14 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     });
 
     // No need to clean up as the store will persist
-  }, [handleMobileMove, handleMobileJump, handleMobileStopMove, handleCameraRotation, setMobileControlHandlers, setCameraControls]);
+  }, [
+    handleMobileMove,
+    handleMobileJump,
+    handleMobileStopMove,
+    handleCameraRotation,
+    setMobileControlHandlers,
+    setCameraControls,
+  ]);
 
   // Store player movement API in Zustand store instead of window
   useEffect(() => {

@@ -137,9 +137,9 @@ export class Enemy extends Animal {
     // Initialize audio if supported
     try {
       // Use proper typing for AudioContext compatibility
-      const AudioContextConstructor = window.AudioContext || 
-        (window as AudioContextWithWebkit).webkitAudioContext;
-      
+      const AudioContextConstructor =
+        window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
+
       if (AudioContextConstructor) {
         this.audioContext = new AudioContextConstructor();
         this.sounds = {
@@ -158,22 +158,14 @@ export class Enemy extends Animal {
       }
     } catch (error) {
       // Log the error and continue
-      console.warn('Web Audio API not supported in this browser', error instanceof Error ? error.message : 'Unknown error');
       this.audioContext = null;
       this.sounds = {
         shoot: null,
         hit: null,
         death: null,
       };
+      console.log('Error initializing audio context:', error);
     }
-
-    // Add this enemy to the Zustand store
-    const enemyStore = useEnemyStore.getState();
-    enemyStore.addEnemy({
-      id: this.id,
-      health: this.health,
-      isAlive: this.alive
-    });
   }
 
   /**
@@ -183,12 +175,12 @@ export class Enemy extends Animal {
     this.mesh = new THREE.Group();
     this.mesh.position.copy(this.position);
     this.scene.add(this.mesh);
-    
+
     // Add userData to identify as enemy and track alive status
-    this.mesh.userData = { 
-      type: 'enemy', 
+    this.mesh.userData = {
+      type: 'enemy',
       alive: this.alive,
-      id: this.id
+      id: this.id,
     };
 
     // Apply scale
@@ -333,7 +325,6 @@ export class Enemy extends Animal {
 
   private tryShoot(time: number): void {
     if (!this.alive || !this.isAggressive || !this.audioContext) {
-      if (!this.alive) console.log('Stopped tryShoot - Enemy is dead');
       return;
     }
     if (time - this.lastShootTime > this.shootInterval / 1000) {
@@ -344,7 +335,6 @@ export class Enemy extends Animal {
 
   private shoot(): void {
     if (!this.parts.gun || !this.alive) {
-      console.log('Cannot shoot: missing gun part or enemy dead');
       return;
     }
     const gunPosition = new THREE.Vector3();
@@ -431,7 +421,11 @@ export class Enemy extends Animal {
       const takeDamage = usePlayerStore.getState().takeDamage;
       takeDamage(bullet.userData.damage);
       this.createBloodEffect(playerPosition);
-      if (window.shakeCamera) window.shakeCamera(0.5);
+
+      // Replace window.shakeCamera with gameStore.shakeCamera
+      const { shakeCamera } = useGameStore.getState();
+      if (shakeCamera) shakeCamera(0.5);
+
       return true;
     }
     return false;
@@ -465,9 +459,12 @@ export class Enemy extends Animal {
       this.scene.add(particle);
       particles.push(particle);
     }
-    if (window.particles) {
-      window.particles.push(...particles);
-    }
+
+    // Replace window.particles with gameStore particles
+    const gameStore = useGameStore.getState();
+    particles.forEach((particle) => {
+      gameStore.addParticle(particle);
+    });
   }
 
   private createBloodEffect(position: THREE.Vector3): void {
@@ -497,9 +494,12 @@ export class Enemy extends Animal {
       this.scene.add(particle);
       particles.push(particle);
     }
-    if (window.particles) {
-      window.particles.push(...particles);
-    }
+
+    // Replace window.particles with gameStore particles
+    const gameStore = useGameStore.getState();
+    particles.forEach((particle) => {
+      gameStore.addParticle(particle);
+    });
   }
 
   private createMuzzleFlash(position: THREE.Vector3): void {
@@ -518,15 +518,12 @@ export class Enemy extends Animal {
   die(): void {
     // If already flagged as dead, exit early
     if (!this.alive) {
-      console.log("Enemy already dead, ignoring die() call");
       return;
     }
 
-    console.log(`Enemy died! Type: ${this.type}`);
-
     // Mark enemy as not alive
     this.alive = false;
-    
+
     // Also update the mesh userData
     if (this.mesh) {
       this.mesh.userData.alive = false;
@@ -546,7 +543,6 @@ export class Enemy extends Animal {
     // Remove from walls array in the game store
     const wallIndex = gameStore.walls.indexOf(this.mesh);
     if (wallIndex !== -1) {
-      console.log("Removing from walls array");
       gameStore.removeWall(this.mesh);
     }
 
@@ -578,7 +574,7 @@ export class Enemy extends Animal {
   private createDeathEffect(): void {
     const gameStore = useGameStore.getState();
     const position = this.mesh.position.clone();
-    
+
     // Create particles for death effect
     for (let i = 0; i < 20; i++) {
       const size = Math.random() * 0.2 + 0.1;
@@ -587,16 +583,18 @@ export class Enemy extends Animal {
         color: ENEMY_CONFIGS[this.type].color,
       });
       const particle = new THREE.Mesh(geometry, material);
-      
+
       // Position particle at enemy position with slight random offset
-      particle.position.copy(position).add(
-        new THREE.Vector3(
-          (Math.random() - 0.5) * 0.5,
-          Math.random() * 1 + 0.5,
-          (Math.random() - 0.5) * 0.5
-        )
-      );
-      
+      particle.position
+        .copy(position)
+        .add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * 1 + 0.5,
+            (Math.random() - 0.5) * 0.5
+          )
+        );
+
       // Add velocity and lifetime to particle
       particle.userData.velocity = new THREE.Vector3(
         (Math.random() - 0.5) * 5,
@@ -605,12 +603,12 @@ export class Enemy extends Animal {
       );
       particle.userData.lifetime = 0;
       particle.userData.maxLifetime = Math.random() * 2 + 1;
-      
+
       // Add to scene and particles array
       this.scene.add(particle);
       gameStore.addParticle(particle);
     }
-    
+
     // Shake camera for dramatic effect
     if (gameStore.shakeCamera) {
       gameStore.shakeCamera(0.5);
@@ -621,33 +619,123 @@ export class Enemy extends Animal {
    * Take damage and update health
    */
   takeDamage(damage: number): void {
-    if (!this.alive) return;
+    if (!this.alive) {
+      return;
+    }
 
-    console.log('======== ENEMY DAMAGE DEBUG ========');
-    console.log(`Enemy type: ${this.type}`);
-    console.log(
-      `Current position: ${this.mesh.position.x}, ${this.mesh.position.y}, ${this.mesh.position.z}`
-    );
-    console.log(`Current health: ${this.health}`);
-    console.log(`Damage received: ${damage}`);
-    console.log(`New health will be: ${this.health - damage}`);
-    console.log(`Will die: ${this.health - damage <= 0}`);
-    console.log('====================================');
-    this.health -= damage;
-    this.playSound('hit');
+    // Apply damage
+    this.health = Math.max(0, this.health - damage);
+
+    // Play hit sound
+    try {
+      this.playSound('hit');
+    } catch (e) {
+      console.error('Error playing hit sound:', e);
+    }
 
     // Update health in the Zustand store
-    const enemyStore = useEnemyStore.getState();
-    enemyStore.updateEnemy(this.id, { health: this.health });
+    try {
+      const enemyStore = useEnemyStore.getState();
+
+      // Diagnostic: check if enemy exists in store before updating
+      const storeEnemy = enemyStore.enemies.find((e) => e.id === this.id);
+      if (!storeEnemy) {
+        enemyStore.addEnemy({
+          id: this.id,
+          health: this.health,
+          isAlive: this.alive,
+        });
+      }
+
+      // Check if instance exists
+      const storeInstances = enemyStore.enemyInstances;
+      const instanceExists = storeInstances.some((e) => e.getId() === this.id);
+
+      if (!instanceExists) {
+        enemyStore.addEnemyInstance(this);
+      }
+
+      // Update the enemy in the store
+      enemyStore.updateEnemy(this.id, { health: this.health });
+    } catch (e) {
+      console.error('Error updating enemy in store:', e);
+    }
+
+    // Visual feedback for hit - flash the enemy red
+    try {
+      this.flashDamageEffect();
+    } catch (e) {
+      console.error('Error applying flash damage effect:', e);
+    }
 
     // Check if enemy is dead after taking damage
     if (this.health <= 0 && this.alive) {
       this.die();
+    } else {
+      console.log(`Enemy survived with ${this.health} health remaining`);
     }
   }
 
+  /**
+   * Create a visual damage effect when hit
+   */
+  private flashDamageEffect(): void {
+    // Flash all parts of the enemy red
+    Object.keys(this.parts).forEach((partName) => {
+      try {
+        const part = this.parts[partName];
+        if (!part || !part.material) {
+          return;
+        }
+
+        // Helper function to check if a material has a color property
+        const hasColorProperty = (mat: THREE.Material): boolean =>
+          Object.prototype.hasOwnProperty.call(mat, 'color');
+
+        // Handle both single material and material array
+        if (Array.isArray(part.material)) {
+          // Handle material array
+          part.material.forEach((mat) => {
+            if (hasColorProperty(mat)) {
+              // Cast to MeshBasicMaterial to access color
+              const meshMat = mat as THREE.MeshBasicMaterial;
+              // Store original color
+              const originalColor = meshMat.color.clone();
+              // Set to red
+              meshMat.color.set(0xff0000);
+
+              // Restore original color after a short time
+              setTimeout(() => {
+                if (part && part.parent) {
+                  meshMat.color.copy(originalColor);
+                }
+              }, 200);
+            }
+          });
+        } else if (hasColorProperty(part.material)) {
+          // Handle single material (cast to appropriate type)
+          const meshMat = part.material as THREE.MeshBasicMaterial;
+          // Store original color
+          const originalColor = meshMat.color.clone();
+          // Set to red
+          meshMat.color.set(0xff0000);
+
+          // Restore original color after a short time
+          setTimeout(() => {
+            if (part && part.parent) {
+              meshMat.color.copy(originalColor);
+            }
+          }, 200);
+        } else {
+          console.log(`Part ${partName} material has no color property`);
+        }
+      } catch (e) {
+        console.error(`Error flashing part ${partName}:`, e);
+      }
+    });
+  }
+
   private disableAllBehaviors(): void {
-    console.log('Disabling all enemy behaviors');
     this.bullets = [];
     for (const partName in this.parts) {
       const part = this.parts[partName];
@@ -661,34 +749,34 @@ export class Enemy extends Animal {
   private playDeathSound(): void {
     try {
       // Use proper typing for AudioContext
-      const AudioContextConstructor = window.AudioContext || 
-        (window as AudioContextWithWebkit).webkitAudioContext;
-      
+      const AudioContextConstructor =
+        window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
+
       if (AudioContextConstructor) {
         const tempContext = new AudioContextConstructor();
-        
+
         const oscillator = tempContext.createOscillator();
         const gainNode = tempContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(tempContext.destination);
-        
+
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(880, tempContext.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(55, tempContext.currentTime + 0.5);
         gainNode.gain.setValueAtTime(0.3, tempContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, tempContext.currentTime + 0.5);
-        
+
         oscillator.start();
         oscillator.stop(tempContext.currentTime + 0.5);
-        
+
         // Auto-close the context after the sound plays
         setTimeout(() => {
           tempContext.close();
         }, 600);
       }
     } catch (error) {
-      console.error("Error playing death sound:", error);
+      console.error('Error playing death sound:', error);
     }
   }
 
@@ -698,54 +786,54 @@ export class Enemy extends Animal {
       // Create a new, temporary context for the death sound
       try {
         // Use proper typing for AudioContext
-        const AudioContextConstructor = window.AudioContext || 
-          (window as AudioContextWithWebkit).webkitAudioContext;
-        
+        const AudioContextConstructor =
+          window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
+
         if (AudioContextConstructor) {
           const tempContext = new AudioContextConstructor();
-          
+
           // Play a brief death sound with the new context
           const oscillator = tempContext.createOscillator();
           const gainNode = tempContext.createGain();
-          
+
           oscillator.connect(gainNode);
           gainNode.connect(tempContext.destination);
-          
+
           oscillator.type = 'sine';
           oscillator.frequency.setValueAtTime(880, tempContext.currentTime);
           oscillator.frequency.exponentialRampToValueAtTime(55, tempContext.currentTime + 0.5);
           gainNode.gain.setValueAtTime(0.3, tempContext.currentTime);
           gainNode.gain.exponentialRampToValueAtTime(0.01, tempContext.currentTime + 0.5);
-          
+
           oscillator.start();
           oscillator.stop(tempContext.currentTime + 0.5);
-          
+
           // Now close the original context to stop all ongoing sounds
           if (this.audioContext.state !== 'closed') {
             // Create a no-op gain node to silence everything
             const silencer = this.audioContext.createGain();
             silencer.gain.value = 0;
             silencer.connect(this.audioContext.destination);
-            
+
             // Suspend the audio context (this is more compatible than closing)
             if (this.audioContext.state === 'running') {
               this.audioContext.suspend();
             }
           }
-          
+
           // Replace the old audio context with null
           this.audioContext = null;
         }
       } catch (error) {
-        console.error("Error stopping audio:", error);
+        console.error('Error stopping audio:', error);
       }
     }
-    
+
     // Clear all sound buffers
     this.sounds = {
       shoot: null,
       hit: null,
-      death: null
+      death: null,
     };
   }
 
@@ -787,9 +875,7 @@ export class Enemy extends Animal {
         const enemyCenter = enemyBox.getCenter(new THREE.Vector3());
         const wallCenter = wallBox.getCenter(new THREE.Vector3());
 
-        const direction = new THREE.Vector3()
-          .subVectors(enemyCenter, wallCenter)
-          .normalize();
+        const direction = new THREE.Vector3().subVectors(enemyCenter, wallCenter).normalize();
 
         // Move enemy away from wall
         this.mesh.position.add(direction.multiplyScalar(0.1));
@@ -803,22 +889,18 @@ export class Enemy extends Animal {
   private playSound(type: 'shoot' | 'hit' | 'death'): void {
     // Block ALL sounds from dead enemies EXCEPT death sound
     if (!this.alive && type !== 'death') {
-      console.log(`BLOCKED sound ${type} from dead enemy!`);
       return;
     }
-    
-    // Extra safety logging
-    console.log(`Playing ${type} sound for ${this.type} enemy, alive: ${this.alive}`);
-    
+
     try {
       // Use proper typing for AudioContext
-      const AudioContextConstructor = window.AudioContext || 
-        (window as AudioContextWithWebkit).webkitAudioContext;
-      
+      const AudioContextConstructor =
+        window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
+
       if (AudioContextConstructor) {
         // Create a fresh audio context for each sound - more reliable but less efficient
         const ctx = new AudioContextConstructor();
-        
+
         // Create and play sound
         const oscillator = ctx.createOscillator();
         const gainNode = ctx.createGain();
@@ -835,7 +917,7 @@ export class Enemy extends Animal {
             gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
             oscillator.start();
             oscillator.stop(ctx.currentTime + 0.1);
-            
+
             // Auto-close context after sound completes
             setTimeout(() => ctx.close(), 200);
             break;
@@ -848,7 +930,7 @@ export class Enemy extends Animal {
             gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
             oscillator.start();
             oscillator.stop(ctx.currentTime + 0.2);
-            
+
             // Auto-close context after sound completes
             setTimeout(() => ctx.close(), 300);
             break;
@@ -861,7 +943,7 @@ export class Enemy extends Animal {
             gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
             oscillator.start();
             oscillator.stop(ctx.currentTime + 0.5);
-            
+
             // Auto-close context after sound completes
             setTimeout(() => ctx.close(), 600);
             break;
@@ -877,11 +959,11 @@ export class Enemy extends Animal {
    */
   destroy(): void {
     // ... existing cleanup code ...
-    
+
     // Remove from the Zustand store
     const enemyStore = useEnemyStore.getState();
     enemyStore.removeEnemy(this.id);
-    
+
     // ... rest of destroy method if any ...
   }
 
@@ -889,20 +971,13 @@ export class Enemy extends Animal {
   getId(): string {
     return this.id;
   }
-  
+
   // Add this method for compatibility with the Gun class
   getIsDead(): boolean {
-    return !this.alive;
+    return !this.alive || this.isDead;
   }
-}
 
-// Global type definitions
-declare global {
-  interface Window {
-    enemies?: Enemy[];
-    enemiesRef?: React.RefObject<Enemy[]>;
-    particles?: THREE.Mesh[];
-    walls?: THREE.Object3D[];
-    shakeCamera?: (intensity: number) => void;
+  getType(): EnemyTypeEnum {
+    return this.type;
   }
 }

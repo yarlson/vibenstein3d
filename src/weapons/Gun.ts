@@ -1,14 +1,14 @@
-import { 
-  Scene, 
-  Camera, 
-  Group, 
-  Mesh, 
-  Raycaster, 
-  Object3D, 
-  Vector3, 
-  SphereGeometry, 
+import {
+  Scene,
+  Camera,
+  Group,
+  Mesh,
+  Raycaster,
+  Object3D,
+  Vector3,
+  SphereGeometry,
   MeshBasicMaterial,
-  PlaneGeometry
+  PlaneGeometry,
 } from 'three';
 import { GunEffects } from '../utils/GunEffects';
 import { useEnemyStore } from '../state/enemyStore';
@@ -56,15 +56,21 @@ export class Gun {
   }
 
   protected updateBullets(delta: number): void {
-    // Update existing bullets
+    // Skip the whole method if no bullets
+    if (this.bullets.length === 0) {
+      return;
+    }
+
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const bullet = this.bullets[i];
       const currentTime = performance.now();
 
       // Check if bullet should be removed due to lifetime
-      if (bullet.userData.createdAt && 
-          bullet.userData.lifespan && 
-          currentTime - bullet.userData.createdAt > bullet.userData.lifespan) {
+      if (
+        bullet.userData.createdAt &&
+        bullet.userData.lifespan &&
+        currentTime - bullet.userData.createdAt > bullet.userData.lifespan
+      ) {
         // Remove bullet and trail
         this.scene.remove(bullet);
         if (bullet.userData.trail) {
@@ -76,36 +82,36 @@ export class Gun {
 
       // Move bullet forward using velocity
       if (bullet.userData.direction && bullet.userData.velocity) {
-        bullet.position.add(
-          bullet.userData.direction.clone().multiplyScalar(bullet.userData.velocity * delta)
-        );
+        const movementDelta = bullet.userData.direction
+          .clone()
+          .multiplyScalar(bullet.userData.velocity * delta);
+        bullet.position.add(movementDelta);
       }
 
       // Update bullet trail if it exists
       if (bullet.userData.trail) {
         const positions = bullet.userData.trail.geometry.attributes.position.array;
-        
+
         // Trail start position (bullet's current position)
         positions[0] = bullet.position.x;
         positions[1] = bullet.position.y;
         positions[2] = bullet.position.z;
-        
+
         // Trail end position (bullet's position minus direction * trailLength)
         if (bullet.userData.direction && bullet.userData.trailLength) {
-          const trailEnd = bullet.position.clone().sub(
-            bullet.userData.direction.clone().multiplyScalar(bullet.userData.trailLength)
-          );
+          const trailEnd = bullet.position
+            .clone()
+            .sub(bullet.userData.direction.clone().multiplyScalar(bullet.userData.trailLength));
           positions[3] = trailEnd.x;
           positions[4] = trailEnd.y;
           positions[5] = trailEnd.z;
         }
-        
+
         bullet.userData.trail.geometry.attributes.position.needsUpdate = true;
       }
 
-      // Check for collisions
       const hasCollided = this.checkBulletCollisions(bullet);
-      
+
       // Check if bullet has traveled too far (max distance is 100 units if not specified)
       const maxDistance = 100;
       if (bullet.userData.startPosition) {
@@ -120,7 +126,7 @@ export class Gun {
           continue;
         }
       }
-      
+
       // If bullet collided with something, remove it
       if (hasCollided) {
         // Remove bullet and trail
@@ -140,13 +146,15 @@ export class Gun {
     // Get store instances
     const enemyStore = useEnemyStore.getState();
     const gameStore = useGameStore.getState();
-    
+
     // 1. FIRST PRIORITY: Check for enemy collisions (most important)
     // Get enemy instances from the enemy store
     const enemies = enemyStore.getEnemyInstances();
     if (enemies.length > 0) {
       for (const enemy of enemies) {
-        if (enemy.getIsDead()) continue;
+        if (enemy.getIsDead()) {
+          continue;
+        }
 
         const enemyPosition = enemy.getPosition();
         // Use a larger collision radius for enemies to make hits easier
@@ -154,10 +162,8 @@ export class Gun {
         const distance = bullet.position.distanceTo(enemyPosition);
 
         if (distance < hitRadius) {
-          // Hit an enemy!
-          console.log(
-            `ENEMY HIT! Distance: ${distance.toFixed(2)}, applying damage: ${bullet.userData.damage}`
-          );
+          // Get the damage amount from the bullet (default to 25 if not set)
+          const damage = bullet.userData.damage || 25;
 
           // Mark bullet for removal
           bullet.userData.alive = false;
@@ -165,52 +171,149 @@ export class Gun {
           // Create hit flash effect (but no impact marker)
           this.createEnemyHitEffect(bullet.position.clone());
 
-          // Apply damage to enemy
-          enemy.takeDamage(bullet.userData.damage);
+          // DIRECT DAMAGE APPLICATION: Bypass method calls that might be failing
+          try {
+            // First try the normal takeDamage method
+            enemy.takeDamage(damage);
+
+            // Force update enemy in store as well
+            enemyStore.updateEnemy(enemy.getId(), {
+              health: enemy.getHealth(),
+              isAlive: enemy.getHealth() > 0,
+            });
+          } catch (error) {
+            console.error(
+              'Error applying damage to enemy:',
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            // Emergency direct manipulation of enemy health
+            try {
+              // @ts-expect-error - Emergency debug access to private property
+              enemy.health -= damage;
+
+              // Force update in store
+              enemyStore.updateEnemy(enemy.getId(), {
+                health: enemy.getHealth(),
+                isAlive: enemy.getHealth() > 0,
+              });
+
+              // Force kill enemy if health <= 0
+              if (enemy.getHealth() <= 0) {
+                try {
+                  enemy.die();
+                } catch (dieError) {
+                  console.error(
+                    'Error calling die():',
+                    dieError instanceof Error ? dieError.message : 'Unknown error'
+                  );
+                  // Last resort: directly set alive to false
+                  // Force property access on enemy
+                  Object.defineProperty(enemy, 'alive', {
+                    value: false,
+                    writable: true,
+                  });
+                  enemyStore.updateEnemy(enemy.getId(), { isAlive: false });
+                }
+              }
+            } catch (directError) {
+              console.error('Emergency direct manipulation failed:', directError);
+            }
+          }
 
           return true;
         }
       }
+    } else {
+      console.log('No enemies found in store. Cannot check for collisions.');
     }
 
     // 2. Check for wall collisions
     const walls = gameStore.walls;
-    console.log(`Checking wall collisions, total walls: ${walls.length}`);
     if (walls.length > 0) {
       if (!bullet.userData.previousPosition) {
         // If this is the first update, set the previous position to be slightly behind the current position
-        bullet.userData.previousPosition = bullet.position.clone().sub(
-          bullet.userData.direction.clone().multiplyScalar(0.1)
-        );
+        bullet.userData.previousPosition = bullet.position
+          .clone()
+          .sub(bullet.userData.direction.clone().multiplyScalar(0.1));
       }
-      
+
       // Calculate direction and distance for raycasting
       const rayDirection = bullet.userData.direction.clone().normalize();
       const rayFrom = bullet.userData.previousPosition.clone();
       const rayTo = bullet.position.clone();
       const rayDistance = rayFrom.distanceTo(rayTo);
-      
+
       // Create a ray for collision detection
       const ray = new Raycaster(rayFrom, rayDirection, 0, rayDistance);
 
       // Check for intersections with walls
       const intersects = ray.intersectObjects(walls, true);
-      console.log(`Wall intersections found: ${intersects.length}`);
-      if (intersects.length > 0) {
-        // Hit a wall!
-        console.log(`WALL HIT! Distance: ${intersects[0].distance.toFixed(2)}, Object: `, {
-          type: intersects[0].object.userData?.type || 'unknown',
-          parent: intersects[0].object.parent ? 'exists' : 'null',
-          position: intersects[0].point
-        });
 
-        // Create impact effect at the intersection point
-        this.effects.createImpactEffect(
-          intersects[0].point,
-          intersects[0].face?.normal || bullet.userData.direction.clone().negate(),
-          // Cast to Mesh to avoid type issues with the impact effect
-          intersects[0].object as Mesh
-        );
+      if (intersects.length > 0) {
+        // Ensure the hit object has userData for the mark
+        const hitObject = intersects[0].object as Mesh;
+        if (!hitObject.userData) {
+          hitObject.userData = {};
+        }
+        // Make sure it has a type, even if just generic
+        if (!hitObject.userData.type) {
+          hitObject.userData.type = 'wall';
+        }
+
+        // Get the impact point and normal
+        const impactPoint = intersects[0].point.clone();
+        let impactNormal: Vector3;
+
+        // Use face normal if available, otherwise use direction
+        if (intersects[0].face && intersects[0].face.normal) {
+          impactNormal = intersects[0].face.normal.clone();
+        } else {
+          impactNormal = bullet.userData.direction.clone().negate();
+        }
+
+        // WORKAROUND: Create impact directly with scene
+        // This bypasses normal effects path for impact debug
+        try {
+          // Create a more visible impact mark directly here
+          const markSize = 0.5; // Larger mark for debugging
+          const markGeometry = new PlaneGeometry(markSize, markSize);
+          const markMaterial = new MeshBasicMaterial({
+            color: 0xff0000, // RED for debug
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false,
+            side: 2, // DoubleSide
+          });
+          const mark = new Mesh(markGeometry, markMaterial);
+
+          // Ensure normal is normalized
+          const normalizedNormal = impactNormal.normalize();
+
+          // Position mark
+          mark.position.copy(impactPoint).addScaledVector(normalizedNormal, 0.03);
+
+          // Set up the rotation
+          mark.lookAt(impactPoint.clone().add(normalizedNormal));
+          mark.rotateY(Math.PI); // Rotate 180 degrees
+
+          // Add to scene directly
+          this.scene.add(mark);
+
+          // Store in game store
+          const gameStore = useGameStore.getState();
+          gameStore.addImpactMarker(mark);
+
+          // Set up auto-removal
+          setTimeout(() => {
+            this.scene.remove(mark);
+            gameStore.removeImpactMarker(mark);
+          }, 15000); // 15 seconds
+        } catch (e) {
+          console.error('Error creating direct impact mark:', e);
+        }
+
+        // Also create impact effect the normal way
+        this.effects.createImpactEffect(impactPoint, impactNormal, hitObject);
 
         return true;
       }
@@ -219,10 +322,13 @@ export class Gun {
     // 3. Check for floor collision
     if (bullet.position.y <= 0.05) {
       // Create a temporary impact effect for the floor
-      this.createFloorHitEffect(bullet.position.clone().set(bullet.position.x, 0.01, bullet.position.z));
+      this.createFloorHitEffect(
+        bullet.position.clone().set(bullet.position.x, 0.01, bullet.position.z)
+      );
       return true;
     }
 
+    // No collisions detected
     return false;
   }
 
@@ -287,14 +393,14 @@ export class Gun {
       transparent: true,
       opacity: 0.5,
       depthWrite: false,
-      side: 2 // DoubleSide
+      side: 2, // DoubleSide
     });
     const mark = new Mesh(markGeometry, markMaterial);
-    
+
     // Position and rotate the mark to lie flat on the floor
     mark.position.copy(position).setY(0.01); // Just above the floor
     mark.rotation.x = -Math.PI / 2; // Rotate to lie flat
-    
+
     // Add to scene
     this.scene.add(mark);
 
@@ -314,10 +420,10 @@ export class Gun {
         } else if (flash.parent) {
           this.scene.remove(flash);
         }
-        
+
         // Fade out mark more slowly
         mark.material.opacity = 0.5 * (1 - progress);
-        
+
         requestAnimationFrame(fadeOut);
       } else {
         // Clean up both objects
@@ -338,7 +444,10 @@ export class Gun {
 
   // Type guard to check if an object can take damage
   protected isDamageable(object: Object3D): object is Object3D & DamageableObject {
-    return 'takeDamage' in object && typeof (object as { takeDamage?: unknown }).takeDamage === 'function';
+    return (
+      'takeDamage' in object &&
+      typeof (object as { takeDamage?: unknown }).takeDamage === 'function'
+    );
   }
 
   protected destroyObject(object: Object3D): void {

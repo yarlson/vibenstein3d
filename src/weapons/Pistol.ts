@@ -114,14 +114,16 @@ export class Pistol extends Gun {
     const direction = new Vector3(0, 0, -1);
     direction.applyQuaternion(this.camera.quaternion);
 
-    // Store bullet data
+    // Store bullet data with explicit damage value
+    const bulletDamage = this.damage;
+
     bullet.userData = {
       velocity: this.bulletSpeed,
       direction: direction,
       createdAt: performance.now(),
       lifespan: this.bulletLifespan,
       alive: true,
-      damage: this.damage,
+      damage: bulletDamage, // Make sure damage is set correctly
       trailLength: this.bulletTrailLength,
       startPosition: barrelTip.clone(),
       previousPosition: barrelTip.clone(),

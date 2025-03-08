@@ -17,26 +17,26 @@ interface GameState {
   shoot: () => boolean;
   reload: () => void;
   addAmmo: (weapon: WeaponType, amount: number) => void;
-  
+
   // Camera effects
   shakeCamera: ((intensity: number) => void) | null;
   setShakeCamera: (shakeFunction: (intensity: number) => void) => void;
-  
+
   // Particles
   particles: THREE.Mesh[];
   addParticle: (particle: THREE.Mesh) => void;
   removeParticle: (particle: THREE.Mesh) => void;
-  
+
   // Impact markers (separate from particles)
   impactMarkers: THREE.Mesh[];
   addImpactMarker: (marker: THREE.Mesh) => void;
   removeImpactMarker: (marker: THREE.Mesh) => void;
-  
+
   // Walls for collision detection
   walls: THREE.Object3D[];
   addWall: (wall: THREE.Object3D) => void;
   removeWall: (wall: THREE.Object3D) => void;
-  
+
   // Gun instance for mobile controls
   gunInstance: {
     startFiring: (() => void) | null;
@@ -132,44 +132,51 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     }));
   },
-  
+
   // Camera shake
   shakeCamera: null,
   setShakeCamera: (shakeFunction) => set({ shakeCamera: shakeFunction }),
-  
+
   // Particles
   particles: [],
-  addParticle: (particle) => set((state) => ({ 
-    particles: [...state.particles, particle] 
-  })),
-  removeParticle: (particle) => set((state) => ({ 
-    particles: state.particles.filter(p => p !== particle) 
-  })),
-  
+  addParticle: (particle) =>
+    set((state) => ({
+      particles: [...state.particles, particle],
+    })),
+  removeParticle: (particle) =>
+    set((state) => ({
+      particles: state.particles.filter((p) => p !== particle),
+    })),
+
   // Impact markers
   impactMarkers: [],
-  addImpactMarker: (marker) => set((state) => ({ 
-    impactMarkers: [...state.impactMarkers, marker] 
-  })),
-  removeImpactMarker: (marker) => set((state) => ({ 
-    impactMarkers: state.impactMarkers.filter(m => m !== marker) 
-  })),
-  
+  addImpactMarker: (marker) =>
+    set((state) => ({
+      impactMarkers: [...state.impactMarkers, marker],
+    })),
+  removeImpactMarker: (marker) =>
+    set((state) => ({
+      impactMarkers: state.impactMarkers.filter((m) => m !== marker),
+    })),
+
   // Walls
   walls: [],
-  addWall: (wall) => set((state) => ({ 
-    walls: [...state.walls, wall] 
-  })),
-  removeWall: (wall) => set((state) => ({ 
-    walls: state.walls.filter(w => w !== wall) 
-  })),
-  
+  addWall: (wall) =>
+    set((state) => ({
+      walls: [...state.walls, wall],
+    })),
+  removeWall: (wall) =>
+    set((state) => ({
+      walls: state.walls.filter((w) => w !== wall),
+    })),
+
   // Gun instance
   gunInstance: {
     startFiring: null,
     stopFiring: null,
   },
-  setGunInstance: (gun) => set({ 
-    gunInstance: gun 
-  }),
+  setGunInstance: (gun) =>
+    set({
+      gunInstance: gun,
+    }),
 }));
