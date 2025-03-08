@@ -4,7 +4,7 @@ import { Physics } from '@react-three/cannon';
 import { Player, PLAYER_HEIGHT } from '../components/Player';
 import { Floor } from '../components/Floor';
 import { LevelGrid } from '../components/LevelGrid';
-import { Stats } from '@react-three/drei';
+import { AdaptiveDpr, Stats } from '@react-three/drei';
 import { level1 } from '../levels/level1';
 import { EnemyManager } from '../components/EnemyManager';
 
@@ -46,6 +46,7 @@ export const Scene = () => {
       shadows
       dpr={[1, 1.5]}
     >
+      <AdaptiveDpr pixelated />
       {/* Minimal ambient light */}
       <ambientLight intensity={1} />
 
