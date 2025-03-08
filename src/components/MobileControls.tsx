@@ -129,7 +129,10 @@ export const MobileControls = () => {
           const element = document.elementFromPoint(touch.clientX, touch.clientY);
           const isButton = element?.id?.includes('mobile-');
 
-          if (!isButton) {
+          // Check if the element or any of its parents is a mobile control button
+          const isMobileControl = element?.closest('.mobile-control-button') !== null;
+
+          if (!isButton && !isMobileControl) {
             touchIdRef.current.look = touch.identifier;
             setLookActive(true);
             lookStartRef.current = {
@@ -140,13 +143,24 @@ export const MobileControls = () => {
               x: touch.clientX,
               y: touch.clientY,
             };
+          } else {
+            console.log('Touch on control button detected, not starting camera rotation');
           }
         }
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      e.preventDefault(); // Prevent default to avoid scrolling
+      // Only prevent default if we're handling this touch
+      const handlingSpecificTouch = Array.from(e.changedTouches).some(
+        (touch) =>
+          touch.identifier === touchIdRef.current.joystick ||
+          touch.identifier === touchIdRef.current.look
+      );
+
+      if (handlingSpecificTouch) {
+        e.preventDefault(); // Prevent default to avoid scrolling
+      }
 
       // Handle each touch
       for (let i = 0; i < e.changedTouches.length; i++) {
@@ -224,13 +238,25 @@ export const MobileControls = () => {
     // Only add event listeners if mobile
     if (isMobile) {
       // Add event listeners to whole document to make sure we catch all touches
-      document.addEventListener('touchstart', handleTouchStart, { passive: false });
+      // Use a check to avoid handling events on our control buttons
+      const documentTouchStart = (e: TouchEvent) => {
+        // Check if the touch starts on one of our control buttons
+        const target = e.target as Element;
+        if (target?.closest('.mobile-control-button') || target?.id?.includes('mobile-')) {
+          // Skip handling, let the button handle it
+          console.log('Touch on control, skipping document handler');
+          return;
+        }
+        handleTouchStart(e);
+      };
+
+      document.addEventListener('touchstart', documentTouchStart, { passive: false });
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd);
       document.addEventListener('touchcancel', handleTouchEnd);
 
       return () => {
-        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener('touchstart', documentTouchStart);
         document.removeEventListener('touchmove', handleTouchMove);
         document.removeEventListener('touchend', handleTouchEnd);
         document.removeEventListener('touchcancel', handleTouchEnd);
@@ -261,11 +287,23 @@ export const MobileControls = () => {
         button.style[key] = value;
       });
 
-      // Setup event handler
-      button.addEventListener('touchstart', (e) => {
+      // Setup event handler - using both touchstart and mousedown for better response
+      button.addEventListener(
+        'touchstart',
+        (e) => {
+          console.log(`${id} touchstart event fired`);
+          e.preventDefault();
+          e.stopPropagation(); // Stop event from bubbling up
+          action(e);
+        },
+        { passive: false }
+      );
+
+      button.addEventListener('mousedown', (e) => {
+        console.log(`${id} mousedown event fired`);
         e.preventDefault();
-        e.stopPropagation(); // Stop event from bubbling up
-        action(e);
+        e.stopPropagation();
+        action(e as unknown as TouchEvent);
       });
 
       document.body.appendChild(button);
@@ -333,6 +371,8 @@ export const MobileControls = () => {
             transform: 'translate(50%, -50%)',
             zIndex: '2000',
             touchAction: 'none',
+            pointerEvents: 'auto', // Ensure pointer events are enabled
+            cursor: 'pointer', // Show pointer cursor on hover
           },
           'JUMP',
           handleJump
@@ -360,6 +400,8 @@ export const MobileControls = () => {
             transform: 'translate(50%, 50%)',
             zIndex: '2000',
             touchAction: 'none',
+            pointerEvents: 'auto', // Ensure pointer events are enabled
+            cursor: 'pointer', // Show pointer cursor on hover
           },
           'FIRE',
           handleFire
@@ -387,6 +429,8 @@ export const MobileControls = () => {
             transform: 'translate(50%, 50%)',
             zIndex: '2000',
             touchAction: 'none',
+            pointerEvents: 'auto', // Ensure pointer events are enabled
+            cursor: 'pointer', // Show pointer cursor on hover
           },
           'RELOAD',
           handleReload
@@ -413,6 +457,8 @@ export const MobileControls = () => {
             fontWeight: 'bold',
             zIndex: '2000',
             touchAction: 'none',
+            pointerEvents: 'auto', // Ensure pointer events are enabled
+            cursor: 'pointer', // Show pointer cursor on hover
           },
           isFullscreen ? '✕' : '⛶',
           handleFullscreen

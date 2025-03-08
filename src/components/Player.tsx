@@ -160,6 +160,8 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       }, 500); // 500ms cooldown
 
       console.log('Mobile jump triggered!');
+    } else {
+      console.log('Jump not triggered. On ground:', onGround, 'Cooldown:', jumpCooldown);
     }
   }, [onGround, jumpCooldown, api]);
 
