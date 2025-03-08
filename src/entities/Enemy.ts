@@ -141,6 +141,8 @@ export class Enemy extends Animal {
     // Generate a unique ID for this enemy
     this.id = uuidv4();
 
+    console.log(`[ENEMY] Created enemy with ID ${this.id} of type ${type}`);
+
     // Load configuration based on enemy type
     const config = ENEMY_CONFIGS[type];
 
@@ -186,6 +188,8 @@ export class Enemy extends Animal {
    * Create the enemy's 3D representation
    */
   create(): THREE.Group {
+    console.log(`[ENEMY] Creating 3D mesh for enemy ${this.id}`);
+
     this.mesh = new THREE.Group();
     this.mesh.position.copy(this.position);
     this.scene.add(this.mesh);
@@ -475,79 +479,101 @@ export class Enemy extends Animal {
     return false;
   }
 
+  /**
+   * Create an impact effect at the hit point
+   * @param position Position of the impact
+   * @param normal Surface normal at the impact point
+   * @param hitObject The object that was hit
+   */
   private createImpactEffect(
     position: THREE.Vector3,
     normal: THREE.Vector3,
     hitObject: THREE.Object3D
   ): void {
-    // Create particle effects
+    const gameStore = useGameStore.getState();
+
+    // Create impact particles
     const particleCount = 5;
     const particles: THREE.Mesh[] = [];
+
     for (let i = 0; i < particleCount; i++) {
+      // Create particle
       const size = 0.02 + Math.random() * 0.03;
       const geometry = new THREE.SphereGeometry(size, 8, 8);
       const material = new THREE.MeshBasicMaterial({
-        color: 0xffff00,
+        color: 0xffff00, // Yellow sparks
         transparent: true,
         opacity: 0.8,
       });
+
       const particle = new THREE.Mesh(geometry, material);
+
+      // Position at impact point
       particle.position.copy(position);
+
+      // Add random velocity in hemisphere around normal
       const velocity = new THREE.Vector3(
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2
       );
-      if (velocity.dot(normal) < 0) velocity.reflect(normal);
+
+      // Make sure velocity is in hemisphere of normal
+      if (velocity.dot(normal) < 0) {
+        velocity.reflect(normal);
+      }
+
+      // Scale velocity
       velocity.multiplyScalar(2 + Math.random() * 3);
+
+      // Add to particle data
       particle.userData = {
         velocity: velocity,
         lifetime: 0,
         maxLifetime: 0.5 + Math.random() * 0.5,
       };
+
+      // Add to scene
       this.scene.add(particle);
       particles.push(particle);
     }
 
-    // Replace window.particles with gameStore particles
-    const gameStore = useGameStore.getState();
+    // Add particles to gameStore
     particles.forEach((particle) => {
       gameStore.addParticle(particle);
     });
 
-    // STRICT check: Only create impact marker if this is absolutely not an enemy
-    if (!isEnemyObject(hitObject)) {
-      // Add a black impact marker that will fade out gradually
-      const markSize = 0.1; // Size of the impact mark
-      const markGeometry = new THREE.CircleGeometry(markSize, 16); // Use CircleGeometry for a perfect circle
+    // Create impact mark only if not hitting an enemy
+    if (hitObject && !isEnemyObject(hitObject)) {
+      // Create a black impact mark
+      const markSize = 0.05 + Math.random() * 0.05;
+      const markGeometry = new THREE.CircleGeometry(markSize, 8);
       const markMaterial = new THREE.MeshBasicMaterial({
-        color: 0x000000, // Black color
+        color: 0x000000,
         transparent: true,
-        opacity: 0.9, // Start with high opacity
-        depthWrite: false, // Prevents z-fighting with the wall
-        side: THREE.DoubleSide, // Visible from both sides
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false,
       });
+
       const mark = new THREE.Mesh(markGeometry, markMaterial);
 
-      // Position the mark slightly in front of the impact point along the normal
-      mark.position.copy(position).addScaledVector(normal.clone().normalize(), 0.01);
+      // Position and orient the mark
+      mark.position.copy(position).addScaledVector(normal, 0.01);
+      mark.lookAt(position.clone().add(normal));
 
-      // Set up the rotation to align with the normal
-      if (normal.lengthSq() > 0) {
-        mark.lookAt(position.clone().add(normal));
-      }
+      // Add to scene
+      this.scene.add(mark);
 
-      // Add userData for the mark to track lifetime and fading
+      // Add mark data for lifecycle management
       mark.userData = {
-        parentObject: hitObject,
         lifetime: 0,
-        maxLifetime: 5.0, // 5 seconds lifetime
-        initialOpacity: 0.9,
-        fadeRate: 0.05, // Will fade based on delta time
+        maxLifetime: 20, // Seconds
+        initialOpacity: 0.7,
+        parentObject: hitObject,
       };
 
-      // Add the mark to the scene and to the gameStore for tracking
-      this.scene.add(mark);
+      // Add to gameStore
       gameStore.addImpactMarker(mark);
     }
   }
@@ -590,48 +616,119 @@ export class Enemy extends Animal {
     });
   }
 
+  /**
+   * Create a blood effect at the hit point
+   * @param position Position of the impact
+   */
   private createBloodEffect(position: THREE.Vector3): void {
+    const gameStore = useGameStore.getState();
+
+    // Create blood particles
     const particleCount = 10;
     const particles: THREE.Mesh[] = [];
+
     for (let i = 0; i < particleCount; i++) {
+      // Create particle
       const size = 0.02 + Math.random() * 0.03;
       const geometry = new THREE.SphereGeometry(size, 8, 8);
       const material = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
+        color: 0xff0000, // Red blood
         transparent: true,
         opacity: 0.9,
       });
+
       const particle = new THREE.Mesh(geometry, material);
+
+      // Position at impact point
       particle.position.copy(position);
+
+      // Add random velocity in all directions
       const velocity = new THREE.Vector3(
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2,
         (Math.random() - 0.5) * 2
       );
+
+      // Scale velocity
       velocity.multiplyScalar(1 + Math.random() * 2);
+
+      // Add to particle data
       particle.userData = {
         velocity: velocity,
         lifetime: 0,
         maxLifetime: 0.5 + Math.random() * 0.5,
       };
+
+      // Add to scene
       this.scene.add(particle);
       particles.push(particle);
     }
 
-    // Replace window.particles with gameStore particles
-    const gameStore = useGameStore.getState();
+    // Add particles to gameStore
     particles.forEach((particle) => {
       gameStore.addParticle(particle);
     });
+
+    // Also add a temporary blood splash on the floor
+    const splashSize = 0.2 + Math.random() * 0.1;
+    const splashGeometry = new THREE.CircleGeometry(splashSize, 8);
+    const splashMaterial = new THREE.MeshBasicMaterial({
+      color: 0x990000, // Darker red for floor splash
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    const splash = new THREE.Mesh(splashGeometry, splashMaterial);
+
+    // Position on the floor below the hit position
+    const floorPosition = position.clone();
+    floorPosition.y = 0.01; // Just above the floor
+    splash.position.copy(floorPosition);
+    splash.rotation.x = -Math.PI / 2; // Lay flat on the floor
+
+    // Add to scene
+    this.scene.add(splash);
+
+    // Add splash data for lifecycle management
+    splash.userData = {
+      lifetime: 0,
+      maxLifetime: 10, // Seconds
+      initialOpacity: 0.7,
+    };
+
+    // Add to gameStore
+    gameStore.addImpactMarker(splash);
   }
 
+  /**
+   * Create a muzzle flash at the gun
+   * @param position Position of the muzzle flash
+   */
   private createMuzzleFlash(position: THREE.Vector3): void {
     if (!this.alive) return;
+
+    // Create muzzle flash light
     const light = new THREE.PointLight(0xffaa00, 1, 3);
     light.position.copy(position);
     this.scene.add(light);
+
+    // Create a visible flash element
+    const flashGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const flashMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+    flash.position.copy(position);
+    this.scene.add(flash);
+
+    // Remove light and flash after a short time
     setTimeout(() => {
       this.scene.remove(light);
+      this.scene.remove(flash);
     }, 50);
   }
 
@@ -641,8 +738,11 @@ export class Enemy extends Animal {
   die(): void {
     // If already flagged as dead, exit early
     if (!this.alive) {
+      console.log(`[ENEMY] Die called on already dead enemy ${this.id}`);
       return;
     }
+
+    console.log(`[ENEMY] Enemy ${this.id} dying`);
 
     // Mark enemy as not alive
     this.alive = false;
@@ -652,43 +752,46 @@ export class Enemy extends Animal {
       this.mesh.userData.alive = false;
     }
 
-    // Immediately disable update logic
-    // (For extra safety, override update so that even if called, nothing happens)
-    this.update = () => {};
-
-    // Get store instances
-    const enemyStore = useEnemyStore.getState();
-    const gameStore = useGameStore.getState();
-
-    // Remove from enemy store
-    enemyStore.removeEnemyInstance(this);
-
-    // Remove from walls array in the game store
-    const wallIndex = gameStore.walls.indexOf(this.mesh);
-    if (wallIndex !== -1) {
-      gameStore.removeWall(this.mesh);
+    // Play death sound
+    try {
+      this.playSound('death');
+    } catch (e) {
+      console.error('Error playing death sound:', e);
     }
 
-    // Stop any sounds and bullet updates immediately
-    this.stopAllAudio();
-    this.cleanupBullets();
-    this.disableAllBehaviors();
-
-    // Start death sound and visual effect immediately
-    this.playDeathSound();
+    // Create death effect (particles, blood pool, etc.)
     this.createDeathEffect();
 
-    // Set the legacy isDead flag for compatibility with base class
-    this.isDead = true;
-
-    // Remove the enemy's mesh from the scene after a short delay
-    // (Short enough to be responsive, long enough to see death animation)
-    setTimeout(() => {
-      this.destroy();
-    }, 1000); // 1-second delay
-
     // Update the alive status in the Zustand store
-    enemyStore.updateEnemy(this.id, { isAlive: false });
+    try {
+      const enemyStore = useEnemyStore.getState();
+      enemyStore.updateEnemy(this.id, { isAlive: false });
+    } catch (e) {
+      console.error('Error updating enemy in store on death:', e);
+    }
+
+    // Remove from enemies array and walls array after a delay
+    // This allows death effects to play and keeps the enemy visible briefly
+    setTimeout(() => {
+      // Only proceed with cleanup if the component is still mounted
+      if (!this.scene) return;
+
+      try {
+        // Stop all ongoing behaviors
+        this.bullets = [];
+        this.disableAllBehaviors();
+
+        // Remove enemy instance from store
+        const enemyStore = useEnemyStore.getState();
+        // We keep the enemy data in the store (for UI, etc.) but mark it as dead
+        enemyStore.removeEnemyInstance(this);
+
+        // Destroy the enemy after death effects complete
+        this.isDead = true; // For compatibility with base class
+      } catch (e) {
+        console.error('Error in enemy death cleanup:', e);
+      }
+    }, 5000);
   }
 
   /**
@@ -732,10 +835,68 @@ export class Enemy extends Animal {
       gameStore.addParticle(particle);
     }
 
+    // Make enemy fall over for better death animation
+    this.mesh.rotation.x = Math.PI / 2;
+    this.mesh.position.y = 0.5 * this.scale;
+
+    // Create blood pool under dead enemy
+    this.createBloodPool();
+
     // Shake camera for dramatic effect
     if (gameStore.shakeCamera) {
       gameStore.shakeCamera(0.5);
     }
+  }
+
+  /**
+   * Create a blood pool under the dead enemy
+   */
+  private createBloodPool(): void {
+    // Create blood pool geometry and material
+    const poolGeometry = new THREE.CircleGeometry(1, 16);
+    const poolMaterial = new THREE.MeshBasicMaterial({
+      color: 0xaa0000,
+      transparent: true,
+      opacity: 0.7,
+    });
+
+    // Create blood pool mesh
+    const pool = new THREE.Mesh(poolGeometry, poolMaterial);
+
+    // Position just above the ground under the enemy
+    pool.rotation.x = -Math.PI / 2; // Rotate to lay flat on ground
+    pool.position.copy(this.mesh.position);
+    pool.position.y = 0.01; // Position just above ground to avoid z-fighting
+
+    // Add to scene
+    this.scene.add(pool);
+
+    // Store reference in gameStore for management
+    const gameStore = useGameStore.getState();
+    gameStore.addImpactMarker(pool);
+
+    // Set pool data for lifecycle management
+    pool.userData = {
+      lifetime: 0,
+      maxLifetime: 30, // Blood pool stays for 30 seconds
+      initialOpacity: 0.7,
+      parentObject: this.mesh,
+    };
+
+    // Animate pool growing over time
+    let scale = 0.1;
+    const maxScale = 1 + Math.random() * 0.5;
+
+    const growPool = () => {
+      scale += 0.05;
+      pool.scale.set(scale, scale, scale);
+
+      if (scale < maxScale && pool.parent) {
+        requestAnimationFrame(growPool);
+      }
+    };
+
+    growPool();
   }
 
   /**
@@ -867,97 +1028,6 @@ export class Enemy extends Animal {
     this.mesh.userData.isDead = true;
   }
 
-  private playDeathSound(): void {
-    try {
-      // Use proper typing for AudioContext
-      const AudioContextConstructor =
-        window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
-
-      if (AudioContextConstructor) {
-        const tempContext = new AudioContextConstructor();
-
-        const oscillator = tempContext.createOscillator();
-        const gainNode = tempContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(tempContext.destination);
-
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, tempContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(55, tempContext.currentTime + 0.5);
-        gainNode.gain.setValueAtTime(0.3, tempContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, tempContext.currentTime + 0.5);
-
-        oscillator.start();
-        oscillator.stop(tempContext.currentTime + 0.5);
-
-        // Auto-close the context after the sound plays
-        setTimeout(() => {
-          tempContext.close();
-        }, 600);
-      }
-    } catch (error) {
-      console.error('Error playing death sound:', error);
-    }
-  }
-
-  private stopAllAudio(): void {
-    // If we have an audio context, close it to stop all sounds
-    if (this.audioContext) {
-      // Create a new, temporary context for the death sound
-      try {
-        // Use proper typing for AudioContext
-        const AudioContextConstructor =
-          window.AudioContext || (window as AudioContextWithWebkit).webkitAudioContext;
-
-        if (AudioContextConstructor) {
-          const tempContext = new AudioContextConstructor();
-
-          // Play a brief death sound with the new context
-          const oscillator = tempContext.createOscillator();
-          const gainNode = tempContext.createGain();
-
-          oscillator.connect(gainNode);
-          gainNode.connect(tempContext.destination);
-
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(880, tempContext.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(55, tempContext.currentTime + 0.5);
-          gainNode.gain.setValueAtTime(0.3, tempContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, tempContext.currentTime + 0.5);
-
-          oscillator.start();
-          oscillator.stop(tempContext.currentTime + 0.5);
-
-          // Now close the original context to stop all ongoing sounds
-          if (this.audioContext.state !== 'closed') {
-            // Create a no-op gain node to silence everything
-            const silencer = this.audioContext.createGain();
-            silencer.gain.value = 0;
-            silencer.connect(this.audioContext.destination);
-
-            // Suspend the audio context (this is more compatible than closing)
-            if (this.audioContext.state === 'running') {
-              this.audioContext.suspend();
-            }
-          }
-
-          // Replace the old audio context with null
-          this.audioContext = null;
-        }
-      } catch (error) {
-        console.error('Error stopping audio:', error);
-      }
-    }
-  }
-
-  private cleanupBullets(): void {
-    for (const bullet of this.bullets) {
-      this.scene.remove(bullet);
-    }
-    this.bullets = [];
-  }
-
   private loadSounds(): void {}
 
   getHealth(): number {
@@ -1067,13 +1137,62 @@ export class Enemy extends Animal {
    * Clean up resources when enemy is destroyed
    */
   destroy(): void {
-    // ... existing cleanup code ...
+    // Add a check to prevent destroying enemies that are still alive unless explicitly marked as dead
+    if (this.alive && !this.isDead) {
+      console.warn(
+        `[ENEMY] Attempt to destroy still-alive enemy ${this.id} - preventing destruction`
+      );
+      return;
+    }
 
-    // Remove from the Zustand store
-    const enemyStore = useEnemyStore.getState();
-    enemyStore.removeEnemy(this.id);
+    if (!this.scene) {
+      console.log(`[ENEMY] Destroy called on already destroyed enemy ${this.id}`);
+      return; // Already destroyed
+    }
 
-    // ... rest of destroy method if any ...
+    console.log(`[ENEMY] Destroying enemy ${this.id}`);
+
+    try {
+      // Remove all meshes from scene
+      if (this.mesh) {
+        // Process any child meshes
+        while (this.mesh.children.length > 0) {
+          const child = this.mesh.children[0];
+          this.mesh.remove(child);
+          this.scene.remove(child);
+        }
+        // Remove the main mesh
+        this.scene.remove(this.mesh);
+      }
+
+      // Clean up bullets
+      this.bullets.forEach((bullet) => {
+        if (bullet && bullet.parent) {
+          this.scene.remove(bullet);
+        }
+      });
+      this.bullets = [];
+
+      // Remove from the Zustand store
+      try {
+        const enemyStore = useEnemyStore.getState();
+        enemyStore.removeEnemy(this.id);
+      } catch (e) {
+        console.error('Error removing enemy from store during destroy:', e);
+      }
+
+      // Clean up audio
+      if (this.audioContext) {
+        try {
+          this.audioContext.close();
+          this.audioContext = null;
+        } catch (e) {
+          console.error('Error closing audio context:', e);
+        }
+      }
+    } catch (e) {
+      console.error('Error destroying enemy:', e);
+    }
   }
 
   // Getter for ID
@@ -1084,9 +1203,5 @@ export class Enemy extends Animal {
   // Add this method for compatibility with the Gun class
   getIsDead(): boolean {
     return !this.alive || this.isDead;
-  }
-
-  getType(): EnemyTypeEnum {
-    return this.type;
   }
 }

@@ -325,25 +325,52 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      // Clean up enemies when component unmounts
+      console.log('[DEBUG] EnemyManager cleanup function running - component is unmounting');
+
+      // Stop intervals and unsubscribe from store events
       clearInterval(statusInterval);
       unsubscribe();
 
-      enemiesRef.current.forEach((enemy) => {
-        try {
-          // Destroy the enemy
-          enemy.destroy();
+      // Check if this is a true unmount or just a React remount
+      const isFullUnmount =
+        document.body.classList.contains('unmounting') ||
+        document.hidden ||
+        window.location.href.includes('unmount=true');
 
-          // Get the store reference
-          const enemyStore = useEnemyStore.getState();
+      // Log the cleanup type
+      console.log(
+        `[DEBUG] EnemyManager cleanup type: ${isFullUnmount ? 'FULL UNMOUNT' : 'REACT REMOUNT'}`
+      );
 
-          // Remove from both arrays in the store
-          enemyStore.removeEnemy(enemy.getId());
-          enemyStore.removeEnemyInstance(enemy);
-        } catch (e) {
-          console.error('Error cleaning up enemy:', e);
-        }
-      });
+      // Only destroy enemies on full unmount (like level change or game exit)
+      // For normal React remounts, just keep the enemies alive
+      if (isFullUnmount) {
+        console.log('[DEBUG] Performing full cleanup - destroying all enemies');
+
+        // Clean up enemies when component unmounts
+        enemiesRef.current.forEach((enemy) => {
+          try {
+            // Mark enemy as dead first, then destroy it
+            // This prevents the "Attempt to destroy still-alive enemy" message
+            if (enemy.alive) {
+              // Use direct property access to bypass the setter
+              Object.defineProperty(enemy, 'isDead', { value: true });
+            }
+
+            // Now destroy the enemy
+            enemy.destroy();
+
+            // Remove from store
+            const enemyStore = useEnemyStore.getState();
+            enemyStore.removeEnemy(enemy.getId());
+            enemyStore.removeEnemyInstance(enemy);
+          } catch (e) {
+            console.error('Error cleaning up enemy:', e);
+          }
+        });
+      } else {
+        console.log('[DEBUG] Skipping enemy destruction during React remount');
+      }
 
       // Clean up local references
       enemiesRef.current = [];
