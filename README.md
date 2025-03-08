@@ -8,7 +8,7 @@ A modern first-person shooter game inspired by Wolfenstein 3D, built with React,
 - Hit-scan combat system
 - Enemy AI with states (Idle, Chase, Attack, Death)
 - Interactive objects (keys, doors, switches)
-- Dynamic lighting and post-processing effects
+- Dynamic ceiling lighting system with customizable light fixtures
 - Grid-based level design
 - HUD with health, ammo, and score tracking
 
@@ -20,6 +20,15 @@ A modern first-person shooter game inspired by Wolfenstein 3D, built with React,
 - Cannon.js for physics
 - Zustand for state management
 - Vite for build tooling
+
+## Lighting System
+
+The game features a dynamic lighting system with:
+
+- Customizable ceiling lights with different colors and intensities
+- Separate light grid for independent placement of light fixtures
+- Realistic light falloff and shadows
+- Support for different types of lights (ceiling lamps, wall sconces, etc.)
 
 ## Getting Started
 

@@ -43,7 +43,7 @@ export const Ceiling = ({ lights = [] }: CeilingProps) => {
     const halfSize = CEILING_SIZE / 2;
     const trimHeight = 0.05; // Height of the trim
     const trimThickness = 0.1; // Thickness of the trim
-    
+
     return [
       // North edge
       {
@@ -74,13 +74,13 @@ export const Ceiling = ({ lights = [] }: CeilingProps) => {
       // Calculate world coordinates from grid position
       const x = (light.position[0] - 5) * CELL_SIZE; // Center on a 10x10 grid
       const z = (light.position[1] - 5) * CELL_SIZE;
-      
+
       return {
         position: [x, CEILING_HEIGHT - 0.05, z] as [number, number, number], // Just below ceiling
         color: light.color || '#ffffff',
         intensity: light.intensity || 1,
         distance: light.distance || 10,
-        key: `light-${index}`
+        key: `light-${index}`,
       };
     });
   }, [lights]);
@@ -90,25 +90,22 @@ export const Ceiling = ({ lights = [] }: CeilingProps) => {
       {/* Ceiling plane */}
       <mesh ref={ref} receiveShadow>
         <planeGeometry args={[CEILING_SIZE, CEILING_SIZE, 10, 10]} />
-        <meshStandardMaterial 
-          {...ceilingMaterial}
-          wireframe={false}
-        />
+        <meshStandardMaterial {...ceilingMaterial} wireframe={false} />
       </mesh>
-      
+
       {/* Ceiling edge trim to visually seal gaps */}
       {edgeTrim.map((trim, index) => (
-        <mesh 
-          key={`trim-${index}`} 
-          position={trim.position as [number, number, number]} 
-          castShadow 
+        <mesh
+          key={`trim-${index}`}
+          position={trim.position as [number, number, number]}
+          castShadow
           receiveShadow
         >
           <boxGeometry args={trim.size as [number, number, number]} />
           <meshStandardMaterial color="#111111" />
         </mesh>
       ))}
-      
+
       {/* Light fixtures */}
       {lightFixtures.map((fixture) => (
         <group key={fixture.key} position={fixture.position}>
@@ -117,19 +114,19 @@ export const Ceiling = ({ lights = [] }: CeilingProps) => {
             <boxGeometry args={[0.5, 0.1, 0.5]} />
             <meshStandardMaterial color="#333333" />
           </mesh>
-          
+
           {/* Light bulb mesh with emissive material */}
           <mesh position={[0, -0.1, 0]}>
             <sphereGeometry args={[0.15, 16, 16]} />
-            <meshStandardMaterial 
-              color="#888888" 
-              emissive={fixture.color} 
-              emissiveIntensity={2.5} 
+            <meshStandardMaterial
+              color="#888888"
+              emissive={fixture.color}
+              emissiveIntensity={2.5}
             />
           </mesh>
-          
+
           {/* Point light */}
-          <pointLight 
+          <pointLight
             color={fixture.color}
             intensity={fixture.intensity || 2.5}
             distance={fixture.distance || 15}

@@ -21,18 +21,21 @@ export const Wall = ({ position, size = [1, 2, 1], color = '#553222' }: WallProp
   useEffect(() => {
     if (!ref.current) return;
 
+    // Store reference to the current mesh for use in cleanup
+    const currentMesh = ref.current;
+
     // Initialize walls array if it doesn't exist
     if (!window.walls) {
       window.walls = [];
     }
 
     // Add wall to array
-    window.walls.push(ref.current);
+    window.walls.push(currentMesh);
 
     // Remove wall from array when component unmounts
     return () => {
-      if (window.walls && ref.current) {
-        const index = window.walls.indexOf(ref.current);
+      if (window.walls) {
+        const index = window.walls.indexOf(currentMesh);
         if (index !== -1) {
           window.walls.splice(index, 1);
         }
