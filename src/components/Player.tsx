@@ -5,7 +5,7 @@ import { Mesh, Vector3 } from 'three';
 import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
-import { useGameStore } from '../state/gameStore';
+import { usePlayerStore } from '../state/playerStore';
 
 const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
@@ -13,22 +13,7 @@ const PLAYER_RADIUS = 0.5;
 const JUMP_FORCE = 6;
 const DAMPING = 0.2;
 
-// Extend the Window interface to include our mobile control handlers
-declare global {
-  interface Window {
-    mobileControlHandlers?: {
-      onMove: (x: number, y: number) => void;
-      onJump: () => void;
-      onStopMove: () => void;
-    };
-    mobileCameraControls?: {
-      rotateCameraY: (amount: number) => void;
-    };
-    playerMovement?: {
-      setJump: (jump: boolean) => void;
-    };
-  }
-}
+// No longer need to extend Window interface as we're using Zustand store
 
 interface PlayerProps {
   spawnPosition?: [number, number];
@@ -75,13 +60,19 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   const [onGround, setOnGround] = useState(true);
   const playerPosition = useRef<[number, number, number]>([worldX, PLAYER_HEIGHT / 2, worldZ]);
 
-  // Add this to track and update player position
-  const updatePlayerPosition = useGameStore((state) => state.updatePlayerPosition);
+  // Use player store for position updates
+  const updatePlayerPosition = usePlayerStore((state) => state.updatePlayerPosition);
+  const setMobileControlHandlers = usePlayerStore((state) => state.setMobileControlHandlers);
+  const setCameraControls = usePlayerStore((state) => state.setCameraControls);
+  const setPlayerMovement = usePlayerStore((state) => state.setPlayerMovement);
 
   useEffect(() => {
     // Subscribe to position updates
     const unsubscribePosition = api.position.subscribe((p) => {
       playerPosition.current = p;
+      
+      // Update the player position in the Zustand store
+      updatePlayerPosition(p);
     });
 
     // Subscribe to velocity updates
@@ -100,7 +91,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       unsubscribeVelocity();
       unsubscribePosition();
     };
-  }, [api.velocity, api.position]);
+  }, [api.velocity, api.position, updatePlayerPosition]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -213,37 +204,34 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     [camera]
   );
 
-  // Export mobile control handlers to window for access from MobileControls component
+  // Store mobile control handlers in Zustand store instead of window
   useEffect(() => {
-    window.mobileControlHandlers = {
+    // Set mobile control handlers in the store
+    setMobileControlHandlers({
       onMove: handleMobileMove,
       onJump: handleMobileJump,
       onStopMove: handleMobileStopMove,
-    };
+    });
 
-    window.mobileCameraControls = {
+    // Set camera controls in the store
+    setCameraControls({
       rotateCameraY: handleCameraRotation,
-    };
+    });
 
-    return () => {
-      window.mobileControlHandlers = undefined;
-      window.mobileCameraControls = undefined;
-    };
-  }, [handleMobileMove, handleMobileJump, handleMobileStopMove, handleCameraRotation]);
+    // No need to clean up as the store will persist
+  }, [handleMobileMove, handleMobileJump, handleMobileStopMove, handleCameraRotation, setMobileControlHandlers, setCameraControls]);
 
-  // Export player movement API to window
+  // Store player movement API in Zustand store instead of window
   useEffect(() => {
-    // Expose player movement controls to window for mobile controls
-    window.playerMovement = {
+    // Set player movement in the store
+    setPlayerMovement({
       setJump: (jump: boolean) => {
         setMovement((prev) => ({ ...prev, jump }));
       },
-    };
+    });
 
-    return () => {
-      window.playerMovement = undefined;
-    };
-  }, []);
+    // No need to clean up as the store will persist
+  }, [setPlayerMovement]);
 
   useFrame(() => {
     // Compute direction based on input type
@@ -299,7 +287,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     // Update position from physics
     api.position.subscribe((position) => {
       playerPosition.current = [position[0], position[1], position[2]];
-      // Report position to game store for minimap
+      // Report position to player store for minimap
       updatePlayerPosition(playerPosition.current);
     });
   });

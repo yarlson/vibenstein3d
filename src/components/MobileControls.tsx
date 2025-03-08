@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useGameStore } from '../state/gameStore';
+import { usePlayerStore } from '../state/playerStore';
 
 interface Position {
   x: number;
@@ -11,21 +12,7 @@ interface MobileControlButton extends HTMLDivElement {
   onTouchEnd?: () => void;
 }
 
-// Extend Window interface to include camera controls
-declare global {
-  interface Window {
-    mobileCameraControls?: {
-      rotateCameraY: (amount: number) => void;
-    };
-    gunInstance?: {
-      startFiring: () => void;
-      stopFiring: () => void;
-    };
-    playerMovement?: {
-      setJump: (jump: boolean) => void;
-    };
-  }
-}
+// No longer need to extend Window interface as we're using Zustand stores
 
 // Helper function to detect if the device is actually a mobile device
 const isMobileDevice = (): boolean => {
@@ -50,7 +37,8 @@ export const MobileControls = () => {
   const [joystickStart, setJoystickStart] = useState<Position>({ x: 0, y: 0 });
   const [joystickCurrent, setJoystickCurrent] = useState<Position>({ x: 0, y: 0 });
   const [lookActive, setLookActive] = useState(false);
-  const { shoot, reload } = useGameStore();
+  const { reload, gunInstance } = useGameStore();
+  const { mobileControlHandlers, cameraControls } = usePlayerStore();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -99,108 +87,112 @@ export const MobileControls = () => {
   // Handle fullscreen toggle - wrapped in useCallback to prevent recreation on each render
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      // Enter fullscreen
       document.documentElement.requestFullscreen().catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
       });
     } else {
-      // Exit fullscreen
       if (document.exitFullscreen) {
         document.exitFullscreen();
       }
     }
   }, []);
 
-  // Max distance the joystick can move
-  const maxJoystickDistance = 50;
+  // Handle shooting - wrapped in useCallback to prevent recreation on each render
+  const handleShoot = useCallback(() => {
+    // Use the gunInstance from the game store to start firing
+    if (gunInstance.startFiring) {
+      gunInstance.startFiring();
+    }
+  }, [gunInstance]);
 
-  // Handle touch events for movement joystick and camera rotation
+  // Handle stop shooting - wrapped in useCallback to prevent recreation on each render
+  const handleStopShoot = useCallback(() => {
+    // Use the gunInstance from the game store to stop firing
+    if (gunInstance.stopFiring) {
+      gunInstance.stopFiring();
+    }
+  }, [gunInstance]);
+
+  // Handle reload - wrapped in useCallback to prevent recreation on each render
+  const handleReload = useCallback(() => {
+    reload();
+  }, [reload]);
+
+  // Handle jump - wrapped in useCallback to prevent recreation on each render
+  const handleJump = useCallback(() => {
+    // Use the jump handler from the player store
+    if (mobileControlHandlers.onJump) {
+      mobileControlHandlers.onJump();
+    }
+  }, [mobileControlHandlers]);
+
+  // Handle touch events for mobile controls
   useEffect(() => {
-    // Define all handler functions
     const handleTouchStart = (e: TouchEvent) => {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
+      e.preventDefault();
 
-        // Left side of screen - Movement joystick
-        if (touch.clientX < window.innerWidth / 2 && touchIdRef.current.joystick === -1) {
-          touchIdRef.current.joystick = touch.identifier;
-          setJoystickActive(true);
-          setJoystickStart({
-            x: touch.clientX,
-            y: touch.clientY,
-          });
-          setJoystickCurrent({
-            x: touch.clientX,
-            y: touch.clientY,
-          });
-        }
+      // Get the touch target
+      const target = e.target as HTMLElement;
+      const touch = e.touches[0];
 
-        // Right side of screen - Camera controls
-        else if (touch.clientX >= window.innerWidth / 2 && touchIdRef.current.look === -1) {
-          // Avoid assigning right-side control if touching a button
-          const element = document.elementFromPoint(touch.clientX, touch.clientY);
-          const isButton = element?.id?.includes('mobile-');
+      // Handle different control elements
+      if (target.classList.contains('joystick-area') && touchIdRef.current.joystick === -1) {
+        touchIdRef.current.joystick = touch.identifier;
+        setJoystickActive(true);
+        setJoystickStart({ x: touch.clientX, y: touch.clientY });
+        setJoystickCurrent({ x: touch.clientX, y: touch.clientY });
+      } else if (target.classList.contains('look-area') && touchIdRef.current.look === -1) {
+        touchIdRef.current.look = touch.identifier;
+        setLookActive(true);
+        lookStartRef.current = { x: touch.clientX, y: touch.clientY };
+        lastLookPosRef.current = { x: touch.clientX, y: touch.clientY };
+      } else if (target.classList.contains('shoot-button')) {
+        handleShoot();
+      } else if (target.classList.contains('jump-button')) {
+        handleJump();
+      } else if (target.classList.contains('reload-button')) {
+        handleReload();
+      } else if (target.classList.contains('fullscreen-button')) {
+        toggleFullscreen();
+      }
 
-          // Check if the element or any of its parents is a mobile control button
-          const isMobileControl = element?.closest('.mobile-control-button') !== null;
-
-          if (!isButton && !isMobileControl) {
-            touchIdRef.current.look = touch.identifier;
-            setLookActive(true);
-            lookStartRef.current = {
-              x: touch.clientX,
-              y: touch.clientY,
-            };
-            lastLookPosRef.current = {
-              x: touch.clientX,
-              y: touch.clientY,
-            };
-          }
+      // Store onTouchEnd handler for buttons
+      if (target.classList.contains('button')) {
+        const button = target as MobileControlButton;
+        if (target.classList.contains('shoot-button')) {
+          button.onTouchEnd = handleStopShoot;
         }
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Only prevent default if we're handling this touch
-      const handlingSpecificTouch = Array.from(e.changedTouches).some(
-        (touch) =>
-          touch.identifier === touchIdRef.current.joystick ||
-          touch.identifier === touchIdRef.current.look
-      );
+      e.preventDefault();
 
-      if (handlingSpecificTouch) {
-        e.preventDefault(); // Prevent default to avoid scrolling
-      }
-
-      // Handle each touch
+      // Process all active touches
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
 
-        // Joystick movement
+        // Movement joystick
         if (touch.identifier === touchIdRef.current.joystick) {
-          setJoystickCurrent({
-            x: touch.clientX,
-            y: touch.clientY,
-          });
+          setJoystickCurrent({ x: touch.clientX, y: touch.clientY });
 
-          // Calculate direction vector
-          let deltaX = touch.clientX - joystickStart.x;
-          let deltaY = touch.clientY - joystickStart.y;
+          // Calculate joystick offset
+          const deltaX = touch.clientX - joystickStart.x;
+          const deltaY = touch.clientY - joystickStart.y;
 
-          // Normalize to maxJoystickDistance
+          // Normalize to -1 to 1 range with a maximum radius
+          const maxRadius = 50;
           const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-          if (distance > maxJoystickDistance) {
-            deltaX = (deltaX / distance) * maxJoystickDistance;
-            deltaY = (deltaY / distance) * maxJoystickDistance;
-          }
+          const normalizedX = distance > maxRadius ? (deltaX / distance) * maxRadius : deltaX;
+          const normalizedY = distance > maxRadius ? (deltaY / distance) * maxRadius : deltaY;
 
-          // Normalize to values between -1 and 1 for movement
-          const normalizedX = deltaX / maxJoystickDistance;
-          const normalizedY = deltaY / maxJoystickDistance;
+          // Convert to -1 to 1 range
+          const normalizedXRatio = normalizedX / maxRadius;
+          const normalizedYRatio = normalizedY / maxRadius;
 
-          // Call the movement handler if available
-          if (window.mobileControlHandlers?.onMove) {
-            window.mobileControlHandlers.onMove(normalizedX, normalizedY);
+          // Call the movement handler from the player store if available
+          if (mobileControlHandlers.onMove) {
+            mobileControlHandlers.onMove(normalizedXRatio, normalizedYRatio);
           }
         }
 
@@ -209,9 +201,9 @@ export const MobileControls = () => {
           const currentX = touch.clientX;
           const deltaCameraX = currentX - lastLookPosRef.current.x;
 
-          // Apply rotation to camera - rotate Y axis (horizontal)
-          if (window.mobileCameraControls?.rotateCameraY && Math.abs(deltaCameraX) > 0) {
-            window.mobileCameraControls.rotateCameraY(-deltaCameraX * 0.01);
+          // Apply rotation to camera using the camera controls from the player store
+          if (cameraControls.rotateCameraY && Math.abs(deltaCameraX) > 0) {
+            cameraControls.rotateCameraY(-deltaCameraX * 0.01);
           }
 
           // Update last position
@@ -232,8 +224,9 @@ export const MobileControls = () => {
           touchIdRef.current.joystick = -1;
           setJoystickActive(false);
 
-          if (window.mobileControlHandlers?.onStopMove) {
-            window.mobileControlHandlers.onStopMove();
+          // Call the stop move handler from the player store
+          if (mobileControlHandlers.onStopMove) {
+            mobileControlHandlers.onStopMove();
           }
         }
 
@@ -248,373 +241,211 @@ export const MobileControls = () => {
     // Only add event listeners if mobile
     if (isMobile) {
       // Add event listeners to whole document to make sure we catch all touches
-      // Use a check to avoid handling events on our control buttons
-      const documentTouchStart = (e: TouchEvent) => {
-        // Check if the touch starts on one of our control buttons
-        const target = e.target as Element;
-        if (target?.closest('.mobile-control-button') || target?.id?.includes('mobile-')) {
-          // Skip handling, let the button handle it
-          return;
-        }
-        handleTouchStart(e);
-      };
-
-      document.addEventListener('touchstart', documentTouchStart, { passive: false });
+      document.addEventListener('touchstart', handleTouchStart, { passive: false });
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd);
       document.addEventListener('touchcancel', handleTouchEnd);
 
       return () => {
-        document.removeEventListener('touchstart', documentTouchStart);
+        document.removeEventListener('touchstart', handleTouchStart);
         document.removeEventListener('touchmove', handleTouchMove);
         document.removeEventListener('touchend', handleTouchEnd);
         document.removeEventListener('touchcancel', handleTouchEnd);
       };
     }
-
-    // Return empty cleanup if not mobile
     return () => {};
-  }, [joystickActive, joystickStart, isMobile, maxJoystickDistance]);
+  }, [
+    isMobile,
+    joystickStart,
+    handleShoot,
+    handleStopShoot,
+    handleReload,
+    handleJump,
+    toggleFullscreen,
+    mobileControlHandlers,
+    cameraControls,
+  ]);
 
-  // Setup button touch handlers
-  useEffect(() => {
-    // Create button elements with their own distinct event handlers
-    const createButton = (
-      id: string,
-      style: React.CSSProperties,
-      label: string,
-      action: (e: TouchEvent) => void
-    ) => {
-      const button = document.createElement('div') as MobileControlButton;
-      button.id = id;
-      button.innerText = label;
-      button.setAttribute('class', 'mobile-control-button');
-
-      // Apply styles
-      Object.entries(style).forEach(([key, value]) => {
-        // @ts-expect-error - Dynamically setting style properties
-        button.style[key] = value;
-      });
-
-      // Add active state visual feedback
-      button.addEventListener(
-        'touchstart',
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation(); // Stop event from bubbling up
-
-          // Add visual feedback
-          button.style.transform = button.style.transform.replace(
-            'translate',
-            'scale(0.9) translate'
-          );
-          button.style.opacity = '0.8';
-
-          // Call the action
-          action(e);
-        },
-        { passive: false }
-      );
-
-      button.addEventListener('touchend', () => {
-        // Remove visual feedback
-        button.style.transform = button.style.transform.replace('scale(0.9) ', '');
-        button.style.opacity = '1';
-
-        // For fire button, we need to stop firing
-        if (id === 'mobile-fire-button' && button.onTouchEnd) {
-          button.onTouchEnd();
-        }
-      });
-
-      button.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Add visual feedback
-        button.style.transform = button.style.transform.replace(
-          'translate',
-          'scale(0.9) translate'
-        );
-        button.style.opacity = '0.8';
-
-        action(e as unknown as TouchEvent);
-      });
-
-      button.addEventListener('mouseup', () => {
-        // Remove visual feedback
-        button.style.transform = button.style.transform.replace('scale(0.9) ', '');
-        button.style.opacity = '1';
-      });
-
-      document.body.appendChild(button);
-      return button;
-    };
-
-    // Jump button handler
-    const handleJump = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Call the jump handler from mobile controls
-      if (window.mobileControlHandlers?.onJump) {
-        window.mobileControlHandlers.onJump();
-      }
-
-      // ALSO directly set movement state to trigger jump in useFrame
-      if (window.playerMovement) {
-        window.playerMovement.setJump(true);
-        // Reset jump state after a short delay
-        setTimeout(() => {
-          if (window.playerMovement) {
-            window.playerMovement.setJump(false);
-          }
-        }, 50);
-      }
-    };
-
-    // Fire button handler
-    const handleFire = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Call the shoot function from the game store
-      shoot();
-
-      // Directly trigger the weapon firing by accessing the weapon object
-      if (window.gunInstance?.startFiring) {
-        window.gunInstance.startFiring();
-      }
-    };
-
-    // Fire button release handler
-    const handleFireRelease = () => {
-      // Stop firing when button is released
-      if (window.gunInstance?.stopFiring) {
-        window.gunInstance.stopFiring();
-      }
-    };
-
-    // Reload button handler
-    const handleReload = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      reload();
-    };
-
-    // Fullscreen button handler
-    const handleFullscreen = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleFullscreen();
-    };
-
-    // Only create buttons if mobile
-    if (isMobile) {
-      // Remove any existing buttons
-      document.querySelectorAll('.mobile-control-button').forEach((el) => {
-        el.remove();
-      });
-
-      // Create all the buttons
-      const buttons: HTMLElement[] = [];
-
-      buttons.push(
-        createButton(
-          'mobile-jump-button',
-          {
-            position: 'fixed',
-            right: '80px',
-            top: '80px',
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(120, 220, 120, 0.5)',
-            border: '2px solid rgba(120, 220, 120, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            transform: 'translate(50%, -50%)',
-            zIndex: '2000',
-            touchAction: 'none',
-            pointerEvents: 'auto', // Ensure pointer events are enabled
-            cursor: 'pointer', // Show pointer cursor on hover
-          },
-          'JUMP',
-          handleJump
-        )
-      );
-
-      buttons.push(
-        createButton(
-          'mobile-fire-button',
-          {
-            position: 'fixed',
-            right: '80px',
-            bottom: '80px',
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(220, 120, 120, 0.5)',
-            border: '2px solid rgba(220, 120, 120, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            transform: 'translate(50%, 50%)',
-            zIndex: '2000',
-            touchAction: 'none',
-            pointerEvents: 'auto', // Ensure pointer events are enabled
-            cursor: 'pointer', // Show pointer cursor on hover
-          },
-          'FIRE',
-          handleFire
-        )
-      );
-
-      // Store the touchend handler in the button's custom property
-      (buttons[buttons.length - 1] as MobileControlButton).onTouchEnd = handleFireRelease;
-
-      buttons.push(
-        createButton(
-          'mobile-reload-button',
-          {
-            position: 'fixed',
-            right: '180px',
-            bottom: '80px',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(120, 120, 220, 0.5)',
-            border: '2px solid rgba(120, 120, 220, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            transform: 'translate(50%, 50%)',
-            zIndex: '2000',
-            touchAction: 'none',
-            pointerEvents: 'auto', // Ensure pointer events are enabled
-            cursor: 'pointer', // Show pointer cursor on hover
-          },
-          'RELOAD',
-          handleReload
-        )
-      );
-
-      buttons.push(
-        createButton(
-          'mobile-fullscreen-button',
-          {
-            position: 'fixed',
-            left: '20px',
-            top: '20px',
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(80, 80, 80, 0.6)',
-            border: '2px solid rgba(120, 120, 120, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            zIndex: '2000',
-            touchAction: 'none',
-            pointerEvents: 'auto', // Ensure pointer events are enabled
-            cursor: 'pointer', // Show pointer cursor on hover
-          },
-          isFullscreen ? '✕' : '⛶',
-          handleFullscreen
-        )
-      );
-
-      // Remove buttons when component unmounts
-      return () => {
-        buttons.forEach((button) => button.remove());
-      };
-    }
-
-    // Return empty cleanup if not mobile
-    return () => {};
-  }, [shoot, reload, isFullscreen, toggleFullscreen, isMobile]);
-
-  // If not mobile, don't render anything
+  // Don't render controls if not on mobile
   if (!isMobile) {
     return null;
   }
 
-  // Calculate joystick styles
-  const joystickBaseStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: '80px',
-    bottom: '80px',
-    width: '100px',
-    height: '100px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    border: '2px solid rgba(255, 255, 255, 0.5)',
-    transform: 'translate(-50%, 50%)',
-    zIndex: 1000,
-    pointerEvents: 'none',
-  };
+  // Calculate joystick position
+  const joystickOffset = joystickActive
+    ? {
+        x: joystickCurrent.x - joystickStart.x,
+        y: joystickCurrent.y - joystickStart.y,
+      }
+    : { x: 0, y: 0 };
 
-  const joystickKnobStyle: React.CSSProperties = {
-    position: 'absolute',
-    width: '60px',
-    height: '60px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    top: '50%',
-    left: '50%',
-    transform: joystickActive
-      ? `translate(calc(-50% + ${joystickCurrent.x - joystickStart.x}px), calc(-50% + ${
-          joystickCurrent.y - joystickStart.y
-        }px))`
-      : 'translate(-50%, -50%)',
-    transition: joystickActive ? 'none' : 'transform 0.2s ease-out',
-    zIndex: 1001,
-    pointerEvents: 'none',
-  };
-
-  // Camera rotation indicator
-  const lookIndicatorStyle: React.CSSProperties = {
-    position: 'fixed',
-    right: '50%',
-    bottom: '200px',
-    transform: 'translateX(50%)',
-    color: 'rgba(255, 255, 255, 0.5)',
-    zIndex: 999,
-    pointerEvents: 'none',
-    fontFamily: 'sans-serif',
-    fontSize: '14px',
-    textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    opacity: lookActive ? 1 : 0,
-    transition: 'opacity 0.2s ease-out',
-  };
+  // Limit joystick movement radius
+  const maxRadius = 50;
+  const distance = Math.sqrt(joystickOffset.x * joystickOffset.x + joystickOffset.y * joystickOffset.y);
+  const limitedOffset =
+    distance > maxRadius
+      ? {
+          x: (joystickOffset.x / distance) * maxRadius,
+          y: (joystickOffset.y / distance) * maxRadius,
+        }
+      : joystickOffset;
 
   return (
-    <>
-      {/* Visual indicator for the joystick */}
-      <div style={joystickBaseStyle}>
-        <div style={joystickKnobStyle}></div>
+    <div className="mobile-controls">
+      {/* Left side - Movement joystick */}
+      <div className="joystick-container">
+        <div className="joystick-area">
+          <div
+            className="joystick-base"
+            style={{
+              opacity: joystickActive ? 0.7 : 0.3,
+            }}
+          />
+          <div
+            className="joystick-stick"
+            style={{
+              transform: `translate(${limitedOffset.x}px, ${limitedOffset.y}px)`,
+              opacity: joystickActive ? 1 : 0.5,
+            }}
+          />
+        </div>
       </div>
 
-      {/* Camera look indicator */}
-      <div style={lookIndicatorStyle}>Drag right side to look around</div>
+      {/* Right side - Look area */}
+      <div className="look-container">
+        <div
+          className="look-area"
+          style={{
+            opacity: lookActive ? 0.3 : 0.1,
+          }}
+        />
+      </div>
 
-      {/* The actual control buttons are created in useEffect and appended to the body */}
-    </>
+      {/* Action buttons */}
+      <div className="action-buttons">
+        <button className="button shoot-button">FIRE</button>
+        <button className="button jump-button">JUMP</button>
+        <button className="button reload-button">RELOAD</button>
+        <button className="button fullscreen-button">
+          {isFullscreen ? 'EXIT FULL' : 'FULLSCREEN'}
+        </button>
+      </div>
+
+      {/* Add CSS for mobile controls */}
+      <style>
+        {`
+        .mobile-controls {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1000;
+          touch-action: none;
+        }
+
+        .joystick-container {
+          position: absolute;
+          bottom: 100px;
+          left: 50px;
+          width: 150px;
+          height: 150px;
+          pointer-events: none;
+        }
+
+        .joystick-area {
+          position: absolute;
+          width: 150px;
+          height: 150px;
+          border-radius: 75px;
+          pointer-events: auto;
+        }
+
+        .joystick-base {
+          position: absolute;
+          width: 100px;
+          height: 100px;
+          border-radius: 50px;
+          background-color: rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          top: 25px;
+          left: 25px;
+        }
+
+        .joystick-stick {
+          position: absolute;
+          width: 50px;
+          height: 50px;
+          border-radius: 25px;
+          background-color: rgba(255, 255, 255, 0.5);
+          border: 2px solid rgba(255, 255, 255, 0.7);
+          top: 50px;
+          left: 50px;
+          transform: translate(0, 0);
+        }
+
+        .look-container {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 50%;
+          height: 100%;
+          pointer-events: none;
+        }
+
+        .look-area {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 255, 0.1);
+          pointer-events: auto;
+        }
+
+        .action-buttons {
+          position: absolute;
+          bottom: 20px;
+          right: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          pointer-events: none;
+        }
+
+        .button {
+          width: 80px;
+          height: 80px;
+          border-radius: 40px;
+          background-color: rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(255, 255, 255, 0.5);
+          color: white;
+          font-weight: bold;
+          font-size: 14px;
+          pointer-events: auto;
+          touch-action: manipulation;
+        }
+
+        .shoot-button {
+          background-color: rgba(255, 50, 50, 0.3);
+        }
+
+        .jump-button {
+          background-color: rgba(50, 255, 50, 0.3);
+        }
+
+        .reload-button {
+          background-color: rgba(50, 50, 255, 0.3);
+        }
+
+        .fullscreen-button {
+          width: 100px;
+          height: 40px;
+          border-radius: 20px;
+          font-size: 12px;
+          background-color: rgba(100, 100, 100, 0.3);
+        }
+      `}
+      </style>
+    </div>
   );
 };

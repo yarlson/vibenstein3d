@@ -59,7 +59,7 @@ export const Scene = () => {
 
         {/* Level Grid (includes walls and ceiling with lights) */}
         <LevelGrid level={level1} />
-        
+
         {/* Enemy Manager */}
         <EnemyManager level={level1} />
       </Physics>

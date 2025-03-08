@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { WeaponType, WEAPON_STATS } from '../types/weapons';
+import * as THREE from 'three';
 
 interface GameState {
   keysCollected: number;
@@ -16,17 +17,27 @@ interface GameState {
   shoot: () => boolean;
   reload: () => void;
   addAmmo: (weapon: WeaponType, amount: number) => void;
-
-  // Player position for minimap
-  playerPosition: [number, number, number];
-  updatePlayerPosition: (position: [number, number, number]) => void;
   
-  // Player health system
-  playerHealth: number;
-  maxPlayerHealth: number;
-  takeDamage: (amount: number) => void;
-  healPlayer: (amount: number) => void;
-  isPlayerDead: boolean;
+  // Camera effects
+  shakeCamera: ((intensity: number) => void) | null;
+  setShakeCamera: (shakeFunction: (intensity: number) => void) => void;
+  
+  // Particles
+  particles: THREE.Mesh[];
+  addParticle: (particle: THREE.Mesh) => void;
+  removeParticle: (particle: THREE.Mesh) => void;
+  
+  // Walls for collision detection
+  walls: THREE.Object3D[];
+  addWall: (wall: THREE.Object3D) => void;
+  removeWall: (wall: THREE.Object3D) => void;
+  
+  // Gun instance for mobile controls
+  gunInstance: {
+    startFiring: (() => void) | null;
+    stopFiring: (() => void) | null;
+  };
+  setGunInstance: (gun: { startFiring: () => void; stopFiring: () => void }) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -37,7 +48,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   openDoor: (doorId: string) => {
     const { keysCollected, doorsOpen } = get();
-    
+
     if (keysCollected > doorsOpen.size) {
       set((state) => {
         const newDoorsOpen = new Set(state.doorsOpen);
@@ -59,10 +70,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   isReloading: false,
   lastShotTime: 0,
-
-  // Initialize player position
-  playerPosition: [0, 0, 0],
-  updatePlayerPosition: (position: [number, number, number]) => set({ playerPosition: position }),
 
   switchWeapon: (weapon: WeaponType) => {
     if (!get().isReloading) {
@@ -120,27 +127,35 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     }));
   },
-
-  // Player health system
-  playerHealth: 100,
-  maxPlayerHealth: 100,
-  isPlayerDead: false,
   
-  takeDamage: (amount) => {
-    set((state) => {
-      const newHealth = Math.max(0, state.playerHealth - amount);
-      const isPlayerDead = newHealth <= 0;
-      
-      return {
-        playerHealth: newHealth,
-        isPlayerDead,
-      };
-    });
-  },
+  // Camera shake
+  shakeCamera: null,
+  setShakeCamera: (shakeFunction) => set({ shakeCamera: shakeFunction }),
   
-  healPlayer: (amount) => {
-    set((state) => ({
-      playerHealth: Math.min(state.maxPlayerHealth, state.playerHealth + amount),
-    }));
+  // Particles
+  particles: [],
+  addParticle: (particle) => set((state) => ({ 
+    particles: [...state.particles, particle] 
+  })),
+  removeParticle: (particle) => set((state) => ({ 
+    particles: state.particles.filter(p => p !== particle) 
+  })),
+  
+  // Walls
+  walls: [],
+  addWall: (wall) => set((state) => ({ 
+    walls: [...state.walls, wall] 
+  })),
+  removeWall: (wall) => set((state) => ({ 
+    walls: state.walls.filter(w => w !== wall) 
+  })),
+  
+  // Gun instance
+  gunInstance: {
+    startFiring: null,
+    stopFiring: null,
   },
+  setGunInstance: (gun) => set({ 
+    gunInstance: gun 
+  }),
 }));

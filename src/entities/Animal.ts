@@ -59,15 +59,18 @@ export class Animal {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose();
           if (Array.isArray(child.material)) {
-            child.material.forEach(material => material.dispose());
+            child.material.forEach((material) => material.dispose());
           } else {
             child.material.dispose();
           }
         }
       }
-      
+
       // Remove the mesh from the scene
       this.scene.remove(this.mesh);
+
+      // Mark as dead to ensure no further processing
+      this.isDead = true;
     }
   }
 
@@ -91,4 +94,4 @@ export class Animal {
   getPosition(): THREE.Vector3 {
     return this.mesh.position.clone();
   }
-} 
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useGameStore } from '../state/gameStore';
+import { usePlayerStore } from '../state/playerStore';
 import { level1 } from '../levels/level1';
 import { CELL_SIZE, CellType } from '../types/level';
 
@@ -21,7 +21,7 @@ const CELL_COLORS = {
 
 export const Minimap: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerPosition = useGameStore((state) => state.playerPosition);
+  const playerPosition = usePlayerStore((state) => state.playerPosition);
 
   // Convert world coordinates to minimap coordinates
   const worldToMinimap = (x: number, z: number, canvasSize: number) => {

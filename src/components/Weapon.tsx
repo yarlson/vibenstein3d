@@ -7,7 +7,7 @@ import { Gun } from '../weapons/Gun';
 
 export const Weapon = () => {
   const { scene, camera } = useThree();
-  const { switchWeapon, reload, isReloading } = useGameStore();
+  const { switchWeapon, reload, isReloading, setGunInstance } = useGameStore();
 
   const gunRef = useRef<Gun | null>(null);
 
@@ -17,18 +17,24 @@ export const Weapon = () => {
     gunRef.current = new Pistol(scene, camera);
     gunRef.current.create();
 
-    // Expose gun instance to window for mobile controls
-    window.gunInstance = gunRef.current;
+    // Store gun instance in the game store instead of window
+    setGunInstance({
+      startFiring: () => gunRef.current?.startFiring(),
+      stopFiring: () => gunRef.current?.stopFiring(),
+    });
 
     return () => {
       // Cleanup when component unmounts
       if (gunRef.current?.mesh) {
         camera.remove(gunRef.current.mesh);
       }
-      // Remove reference from window object
-      window.gunInstance = undefined;
+      // Reset gun instance in the store with empty functions
+      setGunInstance({
+        startFiring: () => {}, // Empty function instead of null
+        stopFiring: () => {}, // Empty function instead of null
+      });
     };
-  }, [scene, camera]);
+  }, [scene, camera, setGunInstance]);
 
   // Handle weapon switching
   useEffect(() => {
