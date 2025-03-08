@@ -1,9 +1,9 @@
-# Developer Specification: Wolfenstein 3D–Inspired FPS
+# Developer Specification: Vibenstein ThreeD
 
 ## 1. Project Overview
 
 **Concept:**  
-Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern desktop browsers. The game combines classic maze-like levels, hit-scan combat, and straightforward enemy AI with modern visual enhancements, dynamic lighting, high-resolution textures, and post-processing effects. The game is session-based (no save/load), with handcrafted levels defined using a grid-based layout, and features a HUD that displays health, ammo, keys, and score.
+Develop a first-person shooter inspired by classic FPS games, targeted for modern desktop browsers. The game combines classic maze-like levels, hit-scan combat, and straightforward enemy AI with modern visual enhancements, dynamic lighting, high-resolution textures, and post-processing effects. The game is session-based (no save/load), with handcrafted levels defined using a grid-based layout, and features a HUD that displays health, ammo, keys, and score.
 
 ---
 
@@ -20,7 +20,7 @@ Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern d
 - **Combat:**
 
   - **Player Shooting:**
-    - Implemented via hit-scan using Three.js’s Raycaster.
+    - Implemented via hit-scan using Three.js's Raycaster.
     - Immediate damage and visual feedback (e.g., muzzle flash, impact sparks).
   - **Enemy Shooting:**
     - Enemies also use hit-scan shooting toward the player with cooldowns.
@@ -68,7 +68,7 @@ Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern d
   Modern desktop browsers.
 
 - **Performance:**
-  - Asynchronous asset loading using Suspense and react-three-fiber’s useLoader.
+  - Asynchronous asset loading using Suspense and react-three-fiber's useLoader.
   - Optimization through texture compression, glTF asset optimization (gltf-pipeline or glTF-Transform), and potential texture atlasing.
 
 ---
@@ -140,7 +140,7 @@ Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern d
 ### Asset Loading
 
 - **Approach:**  
-  Use react-three-fiber’s **useLoader** and React’s **Suspense** to load models and textures asynchronously.
+  Use react-three-fiber's **useLoader** and React's **Suspense** to load models and textures asynchronously.
 - **Optimization:**  
   Implement texture compression and model optimization as part of the build process.
 
@@ -167,7 +167,7 @@ Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern d
 - **Browser Console:**  
   Log errors and warnings during development.
 - **In-Game Debug Tools:**  
-  Integrate tools like react-three/drei’s Stats and Leva for runtime monitoring of performance and state.
+  Integrate tools like react-three/drei's Stats and Leva for runtime monitoring of performance and state.
 - **Optional:**  
   Integrate an error tracking service (e.g., Sentry) in production to capture and report runtime errors.
 
@@ -216,7 +216,7 @@ Develop a first-person shooter inspired by Wolfenstein 3D, targeted for modern d
 ### Core Mechanics Implementation
 
 - **Combat System:**  
-  Implement hit-scan shooting for the player and enemies using Three.js’s Raycaster.
+  Implement hit-scan shooting for the player and enemies using Three.js's Raycaster.
 - **Enemy AI:**  
   Develop the state machine for enemy behavior and integrate basic animations.
 - **Interactive Objects:**  

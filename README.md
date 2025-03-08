@@ -1,6 +1,6 @@
-# Wolfenstein 3D-Inspired FPS
+# Vibenstein ThreeD
 
-A modern first-person shooter game inspired by Wolfenstein 3D, built with React, Three.js, and TypeScript. The game features classic maze-like levels, hit-scan combat, and straightforward enemy AI with modern visual enhancements.
+A modern first-person shooter game with classic retro-inspired gameplay, built with React, Three.js, and TypeScript. The game features maze-like levels, hit-scan combat, and straightforward enemy AI with modern visual enhancements.
 
 ## Features
 
