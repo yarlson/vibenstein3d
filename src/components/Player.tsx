@@ -20,6 +20,9 @@ declare global {
       onJump: () => void;
       onStopMove: () => void;
     };
+    mobileCameraControls?: {
+      rotateCameraY: (amount: number) => void;
+    };
   }
 }
 
@@ -43,6 +46,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   }));
 
   const { camera } = useThree();
+  const controlsRef = useRef(null);
 
   useEffect(() => {
     camera.rotation.set(0, 0, 0);
@@ -167,6 +171,20 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     });
   }, []);
 
+  // Handle mobile camera rotation
+  const handleCameraRotation = useCallback(
+    (amount: number) => {
+      if (controlsRef.current) {
+        // Get current rotation
+        const current = camera.rotation.y;
+
+        // Apply rotation
+        camera.rotation.y = current + amount;
+      }
+    },
+    [camera]
+  );
+
   // Export mobile control handlers to window for access from MobileControls component
   useEffect(() => {
     window.mobileControlHandlers = {
@@ -175,10 +193,15 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       onStopMove: handleMobileStopMove,
     };
 
+    window.mobileCameraControls = {
+      rotateCameraY: handleCameraRotation,
+    };
+
     return () => {
       window.mobileControlHandlers = undefined;
+      window.mobileCameraControls = undefined;
     };
-  }, [handleMobileMove, handleMobileJump, handleMobileStopMove]);
+  }, [handleMobileMove, handleMobileJump, handleMobileStopMove, handleCameraRotation]);
 
   useFrame(() => {
     // Compute direction based on input type
@@ -230,7 +253,7 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
         <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
         <meshStandardMaterial color="red" transparent opacity={0.5} />
       </mesh>
-      <PointerLockControls />
+      <PointerLockControls ref={controlsRef} />
       <primitive object={camera}>
         <Weapon />
       </primitive>
