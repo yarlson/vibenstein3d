@@ -13,6 +13,7 @@ import {
 import { GunEffects } from '../utils/GunEffects';
 import { useEnemyStore } from '../state/enemyStore';
 import { useGameStore } from '../state/gameStore';
+import { triggerCameraShake } from '../utils/cameraUtils';
 
 /**
  * Recursively checks if an object or any of its parents is an enemy.
@@ -446,48 +447,7 @@ export class Gun {
   }
 
   protected shakeCamera(intensity: number = 0.1): void {
-    // Use the shakeCamera function from the game store if available
-    const gameStore = useGameStore.getState();
-    if (gameStore.shakeCamera) {
-      gameStore.shakeCamera(intensity);
-    } else {
-      // Fallback to local implementation if store function not available
-      const originalPosition = this.camera.position.clone();
-      const originalRotation = this.camera.rotation.clone();
-      const duration = 200; // Duration in milliseconds
-      const startTime = performance.now();
-
-      const shake = () => {
-        const elapsed = performance.now() - startTime;
-        if (elapsed < duration) {
-          // Calculate shake offset
-          const offsetX = (Math.random() - 0.5) * intensity;
-          const offsetY = (Math.random() - 0.5) * intensity;
-          const offsetZ = (Math.random() - 0.5) * intensity;
-
-          // Apply offset to camera position
-          this.camera.position.set(
-            originalPosition.x + offsetX,
-            originalPosition.y + offsetY,
-            originalPosition.z + offsetZ
-          );
-
-          // Apply slight rotation shake
-          this.camera.rotation.set(
-            originalRotation.x + (Math.random() - 0.5) * 0.1 * intensity,
-            originalRotation.y + (Math.random() - 0.5) * 0.1 * intensity,
-            originalRotation.z + (Math.random() - 0.5) * 0.1 * intensity
-          );
-
-          requestAnimationFrame(shake);
-        } else {
-          // Reset to original position and rotation
-          this.camera.position.copy(originalPosition);
-          this.camera.rotation.copy(originalRotation);
-        }
-      };
-
-      shake();
-    }
+    // Use the triggerCameraShake function from EnemyController
+    triggerCameraShake(intensity);
   }
 }

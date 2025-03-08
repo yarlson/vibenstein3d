@@ -5,6 +5,7 @@ import { useEnemyStore } from '../state/enemyStore';
 import { usePlayerStore } from '../state/playerStore';
 import { useGameStore } from '../state/gameStore';
 import { v4 as uuidv4 } from 'uuid';
+import { triggerCameraShake } from '../utils/cameraUtils';
 
 // Add specific types for WebAudioAPI compatibility at the top of the file
 interface AudioContextWithWebkit extends Window {
@@ -463,17 +464,27 @@ export class Enemy extends Animal {
   }
 
   private checkBulletPlayerCollision(bullet: THREE.Mesh): boolean {
-    const playerPosition = this.camera.position.clone();
-    const playerRadius = 0.5;
-    const distance = bullet.position.distanceTo(playerPosition);
-    if (distance < playerRadius + this.bulletSize) {
+    const playerPosition = usePlayerStore.getState().playerPosition;
+    if (!playerPosition) return false;
+
+    const distance = bullet.position.distanceTo(
+      new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2])
+    );
+
+    if (distance < 0.5) {
+      // Remove bullet
+      this.bullets = this.bullets.filter((b) => b !== bullet);
+      if (bullet.parent) {
+        bullet.parent.remove(bullet);
+      }
+
+      // Damage player
       const takeDamage = usePlayerStore.getState().takeDamage;
       takeDamage(bullet.userData.damage);
-      this.createBloodEffect(playerPosition);
+      this.createBloodEffect(new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2]));
 
-      // Replace window.shakeCamera with gameStore.shakeCamera
-      const { shakeCamera } = useGameStore.getState();
-      if (shakeCamera) shakeCamera(0.5);
+      // Use the triggerCameraShake function from EnemyController
+      triggerCameraShake(0.5);
 
       return true;
     }
@@ -801,53 +812,38 @@ export class Enemy extends Animal {
    */
   private createDeathEffect(): void {
     const gameStore = useGameStore.getState();
-    const position = this.mesh.position.clone();
 
-    // Create particles for death effect
-    for (let i = 0; i < 20; i++) {
-      const size = Math.random() * 0.2 + 0.1;
-      const geometry = new THREE.BoxGeometry(size, size, size);
-      const material = new THREE.MeshBasicMaterial({
-        color: ENEMY_CONFIGS[this.type].color,
-      });
-      const particle = new THREE.Mesh(geometry, material);
-
-      // Position particle at enemy position with slight random offset
-      particle.position
-        .copy(position)
-        .add(
-          new THREE.Vector3(
-            (Math.random() - 0.5) * 0.5,
-            Math.random() * 1 + 0.5,
-            (Math.random() - 0.5) * 0.5
-          )
+    // Explode parts in random directions
+    Object.values(this.parts).forEach((part) => {
+      if (part && part.parent) {
+        // Add random velocity and rotation
+        const velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.1,
+          Math.random() * 0.15,
+          (Math.random() - 0.5) * 0.1
         );
 
-      // Add velocity and lifetime to particle
-      particle.userData.velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 5,
-        Math.random() * 5 + 5,
-        (Math.random() - 0.5) * 5
-      );
-      particle.userData.lifetime = 0;
-      particle.userData.maxLifetime = Math.random() * 2 + 1;
+        const angularVelocity = new THREE.Vector3(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
 
-      // Add to scene and particles array
-      this.scene.add(particle);
-      gameStore.addParticle(particle);
-    }
+        // Store velocity and angular velocity on the mesh
+        part.userData.velocity = velocity;
+        part.userData.angularVelocity = angularVelocity;
+        part.userData.lifetime = 0;
+        part.userData.maxLifetime = 2 + Math.random() * 2; // 2-4 seconds
 
-    // Make enemy fall over for better death animation
-    this.mesh.rotation.x = Math.PI / 2;
-    this.mesh.position.y = 0.5 * this.scale;
+        // Add to gameStore's particles for physics and lifetime handling
+        gameStore.addParticle(part);
+      }
+    });
 
-    // Create blood pool under dead enemy
     this.createBloodPool();
 
-    // Shake camera for dramatic effect
-    if (gameStore.shakeCamera) {
-      gameStore.shakeCamera(0.5);
-    }
+    // Use the triggerCameraShake function from EnemyController
+    triggerCameraShake(0.5);
   }
 
   /**

@@ -32,7 +32,6 @@ interface EnemyState {
   updateEnemies: (delta: number, time: number) => void;
   setWalls: (walls: THREE.Object3D[]) => void;
   cleanupEnemies: (isFullUnmount?: boolean) => void;
-  shakeCamera: (intensity?: number) => void;
 
   // Add a flag to control resets
   _resetting: boolean;
@@ -285,15 +284,6 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
       resetEnemyStore();
     } else {
       console.log('[DEBUG] Skipping enemy destruction during React remount');
-    }
-  },
-
-  shakeCamera: (intensity = 0.5) => {
-    // This function will be implemented by useThree from @react-three/fiber
-    // in the component that uses this store
-    const shakeCamera = useGameStore.getState().shakeCamera;
-    if (typeof shakeCamera === 'function') {
-      shakeCamera(intensity);
     }
   },
 
