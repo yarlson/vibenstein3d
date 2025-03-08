@@ -107,35 +107,63 @@ export const MobileControls = () => {
     };
   }, [joystickActive, joystickStart]);
 
-  // Event handler for right half of screen
+  // Separate event handlers for jump and shoot to avoid conflicts
   useEffect(() => {
     if (!('ontouchstart' in window)) return;
 
-    const handleRightSideTouch = (e: TouchEvent) => {
-      // Check if touch is in the right half of the screen
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.clientX >= window.innerWidth / 2) {
-          // If touch is in the top part of right side, jump
-          if (touch.clientY < window.innerHeight / 2) {
-            if (window.mobileControlHandlers?.onJump) {
-              window.mobileControlHandlers.onJump();
-            }
-          } else {
-            // If touch is in the bottom part of right side, shoot
-            shoot();
-          }
-          break;
-        }
+    // Jump button handler 
+    const handleJumpTouch = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default behavior
+      if (window.mobileControlHandlers?.onJump) {
+        window.mobileControlHandlers.onJump();
       }
     };
-
-    window.addEventListener('touchstart', handleRightSideTouch);
-
-    return () => {
-      window.removeEventListener('touchstart', handleRightSideTouch);
+    
+    // Shoot button handler
+    const handleShootTouch = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default behavior
+      shoot();
     };
-  }, [shoot]);
+    
+    // Reload button handler
+    const handleReloadTouch = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default behavior
+      reload();
+    };
+    
+    // Get the buttons after they're rendered
+    const jumpButton = document.getElementById('mobile-jump-button');
+    const shootButton = document.getElementById('mobile-shoot-button');
+    const reloadButton = document.getElementById('mobile-reload-button');
+    
+    // Add event listeners to the specific buttons
+    if (jumpButton) {
+      jumpButton.addEventListener('touchstart', handleJumpTouch);
+    }
+    
+    if (shootButton) {
+      shootButton.addEventListener('touchstart', handleShootTouch);
+    }
+    
+    if (reloadButton) {
+      reloadButton.addEventListener('touchstart', handleReloadTouch);
+    }
+    
+    return () => {
+      // Clean up event listeners
+      if (jumpButton) {
+        jumpButton.removeEventListener('touchstart', handleJumpTouch);
+      }
+      
+      if (shootButton) {
+        shootButton.removeEventListener('touchstart', handleShootTouch);
+      }
+      
+      if (reloadButton) {
+        reloadButton.removeEventListener('touchstart', handleReloadTouch);
+      }
+    };
+  }, [shoot, reload]);
 
   // Only render on touch devices
   if (!('ontouchstart' in window)) {
@@ -192,7 +220,6 @@ export const MobileControls = () => {
     fontWeight: 'bold',
     transform: 'translate(50%, -50%)',
     zIndex: 1000,
-    pointerEvents: 'none',
   };
 
   const shootButtonStyle: React.CSSProperties = {
@@ -212,7 +239,6 @@ export const MobileControls = () => {
     fontWeight: 'bold',
     transform: 'translate(50%, 50%)',
     zIndex: 1000,
-    pointerEvents: 'none',
   };
 
   const reloadButtonStyle: React.CSSProperties = {
@@ -232,7 +258,6 @@ export const MobileControls = () => {
     fontWeight: 'bold',
     transform: 'translate(50%, 50%)',
     zIndex: 1000,
-    pointerEvents: 'none',
   };
 
   return (
@@ -243,13 +268,26 @@ export const MobileControls = () => {
       </div>
 
       {/* Jump button */}
-      <div style={jumpButtonStyle}>JUMP</div>
+      <div 
+        id="mobile-jump-button"
+        style={jumpButtonStyle}
+      >
+        JUMP
+      </div>
 
       {/* Shoot button */}
-      <div style={shootButtonStyle}>FIRE</div>
+      <div 
+        id="mobile-shoot-button"
+        style={shootButtonStyle}
+      >
+        FIRE
+      </div>
 
       {/* Reload button */}
-      <div style={reloadButtonStyle} onClick={reload}>
+      <div 
+        id="mobile-reload-button"
+        style={reloadButtonStyle}
+      >
         RELOAD
       </div>
 
@@ -261,20 +299,7 @@ export const MobileControls = () => {
           left: 0,
           width: '50%',
           height: '100%',
-          zIndex: 999,
-          pointerEvents: 'auto',
-        }}
-      ></div>
-
-      {/* Right side touch area - fullscreen but invisible */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: '50%',
-          height: '100%',
-          zIndex: 999,
+          zIndex: 998, // Lower than the buttons
           pointerEvents: 'auto',
         }}
       ></div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useBox } from '@react-three/cannon';
 import { Mesh, Vector3 } from 'three';
@@ -131,41 +131,54 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
     };
   }, []);
 
-  // Mobile control handlers
-  const handleMobileMove = (x: number, y: number) => {
+  // Add a jump cooldown to prevent spamming
+  const [jumpCooldown, setJumpCooldown] = useState(false);
+  
+  // Mobile control handlers with useCallback to prevent unnecessary re-renders
+  const handleMobileMove = useCallback((x: number, y: number) => {
     setMobileMovement({
       x,
       y,
       active: true,
     });
-  };
-
-  const handleMobileJump = () => {
-    if (onGround) {
-      api.applyImpulse([0, JUMP_FORCE, 0], [0, 0, 0]);
+  }, []);
+  
+  const handleMobileJump = useCallback(() => {
+    // Only jump if on ground and not in cooldown
+    if (onGround && !jumpCooldown) {
+      // Apply stronger impulse for mobile to make it more noticeable
+      api.applyImpulse([0, JUMP_FORCE * 1.2, 0], [0, 0, 0]);
+      
+      // Set cooldown to prevent jump spamming
+      setJumpCooldown(true);
+      setTimeout(() => {
+        setJumpCooldown(false);
+      }, 500); // 500ms cooldown
+      
+      console.log('Mobile jump triggered!');
     }
-  };
-
-  const handleMobileStopMove = () => {
+  }, [onGround, jumpCooldown, api]);
+  
+  const handleMobileStopMove = useCallback(() => {
     setMobileMovement({
       x: 0,
       y: 0,
       active: false,
     });
-  };
+  }, []);
 
   // Export mobile control handlers to window for access from MobileControls component
   useEffect(() => {
     window.mobileControlHandlers = {
       onMove: handleMobileMove,
       onJump: handleMobileJump,
-      onStopMove: handleMobileStopMove,
+      onStopMove: handleMobileStopMove
     };
-
+    
     return () => {
       window.mobileControlHandlers = undefined;
     };
-  }, []);
+  }, [handleMobileMove, handleMobileJump, handleMobileStopMove]);
 
   useFrame(() => {
     // Compute direction based on input type
