@@ -38,7 +38,8 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   const controlsRef = useRef(null);
 
   useEffect(() => {
-    camera.rotation.set(0, 0, 0);
+    // Change initial rotation to face 270 degrees from original (90 degrees more than before)
+    camera.rotation.set(0, Math.PI + Math.PI/3, 0); // or 3*Math.PI/2
   }, [camera]);
 
   const [movement, setMovement] = useState({
