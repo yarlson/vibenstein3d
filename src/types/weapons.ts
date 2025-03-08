@@ -6,12 +6,12 @@ export enum WeaponType {
 
 export interface WeaponStats {
   damage: number;
-  fireRate: number; // Shots per second
-  spread: number; // In radians
+  fireRate: number;
+  spread: number;
   ammoPerShot: number;
   maxAmmo: number;
-  muzzleFlashDuration: number; // In seconds
-  reloadTime: number; // In seconds
+  muzzleFlashDuration: number;
+  reloadTime: number;
 }
 
 export const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
@@ -34,10 +34,10 @@ export const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
     reloadTime: 2,
   },
   [WeaponType.Shotgun]: {
-    damage: 10, // Per pellet
+    damage: 10,
     fireRate: 1,
     spread: 0.15,
-    ammoPerShot: 8, // 8 pellets per shot
+    ammoPerShot: 8,
     maxAmmo: 50,
     muzzleFlashDuration: 0.1,
     reloadTime: 2.5,

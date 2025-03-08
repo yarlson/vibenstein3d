@@ -34,20 +34,20 @@ export enum EnemyType {
 
 // Enemy spawn point definition
 export interface EnemySpawn {
-  position: [number, number]; // Grid coordinates [x, z]
+  position: [number, number];
   type: EnemyType;
-  rotation?: number; // Initial rotation in radians
+  rotation?: number;
 }
 
 // Level definition interface
 export interface LevelData {
-  grid: CellType[][]; // 2D array representing the level layout
-  lights?: (LightType | LightConfig)[][]; // 2D array for light placements (can use simple LightType numbers or full LightConfig objects)
+  grid: CellType[][];
+  lights?: (LightType | LightConfig)[][];
   enemies: EnemySpawn[];
   name: string;
-  playerSpawn?: [number, number]; // Optional specific player spawn point [x, z]
+  playerSpawn?: [number, number];
 }
 
 // Cell size for converting grid coordinates to world coordinates
-export const CELL_SIZE = 2; // Each cell is 2x2 units
-export const WALL_HEIGHT = 2.5; // Standard wall height
+export const CELL_SIZE = 2;
+export const WALL_HEIGHT = 2.5;
