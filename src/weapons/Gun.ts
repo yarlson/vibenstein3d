@@ -63,7 +63,10 @@ export class Gun {
       const bullet = this.bullets[i];
 
       // Check if bullet should be removed
-      if (currentTime - bullet.userData.createdAt > bullet.userData.lifespan || !bullet.userData.alive) {
+      if (
+        currentTime - bullet.userData.createdAt > bullet.userData.lifespan ||
+        !bullet.userData.alive
+      ) {
         // Remove bullet and trail
         this.scene.remove(bullet);
         if (bullet.userData.trail) {
@@ -87,9 +90,9 @@ export class Gun {
         positions[2] = bullet.position.z;
 
         // Trail end position (bullet's position minus direction)
-        const trailEnd = bullet.position.clone().sub(
-          bullet.userData.direction.clone().multiplyScalar(bullet.userData.trailLength)
-        );
+        const trailEnd = bullet.position
+          .clone()
+          .sub(bullet.userData.direction.clone().multiplyScalar(bullet.userData.trailLength));
         positions[3] = trailEnd.x;
         positions[4] = trailEnd.y;
         positions[5] = trailEnd.z;
@@ -243,4 +246,4 @@ export class Gun {
 
     shake();
   }
-} 
+}

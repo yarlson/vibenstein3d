@@ -75,7 +75,7 @@ export const Weapon = () => {
   useEffect(() => {
     const updateGun = () => {
       if (gunRef.current) {
-        gunRef.current.update(1/60); // Assuming 60 FPS
+        gunRef.current.update(1 / 60); // Assuming 60 FPS
         requestAnimationFrame(updateGun);
       }
     };

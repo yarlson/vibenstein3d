@@ -22,17 +22,10 @@ export const Scene = () => {
       shadows
     >
       {/* Sky for better visuals */}
-      <Sky sunPosition={[100, 10, 100]} />
+      <Sky sunPosition={[100, -10, 100]} />
 
-      {/* Lights */}
-      <ambientLight intensity={0.5} />
-      <directionalLight
-        position={[10, 10, 10]}
-        intensity={1}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
+      {/* Minimal ambient light */}
+      <ambientLight intensity={0.05} />
 
       {/* Physics world */}
       <Physics gravity={[0, -9.81, 0]}>
@@ -42,7 +35,7 @@ export const Scene = () => {
         {/* Floor */}
         <Floor />
 
-        {/* Level Grid */}
+        {/* Level Grid (includes walls and ceiling with lights) */}
         <LevelGrid level={level1} />
       </Physics>
 

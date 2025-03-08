@@ -1,4 +1,15 @@
-import { Scene, Vector3, Mesh, MeshBasicMaterial, SphereGeometry, BufferGeometry, Line, LineBasicMaterial, Float32BufferAttribute, PlaneGeometry } from 'three';
+import {
+  Scene,
+  Vector3,
+  Mesh,
+  MeshBasicMaterial,
+  SphereGeometry,
+  BufferGeometry,
+  Line,
+  LineBasicMaterial,
+  Float32BufferAttribute,
+  PlaneGeometry,
+} from 'three';
 
 export class GunEffects {
   private scene: Scene;
@@ -19,7 +30,7 @@ export class GunEffects {
     const material = new LineBasicMaterial({
       color: color,
       transparent: true,
-      opacity: 0.5
+      opacity: 0.5,
     });
 
     // Create line and add to scene
@@ -36,7 +47,7 @@ export class GunEffects {
     const flashMaterial = new MeshBasicMaterial({
       color: 0xffff00,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.8,
     });
     const flash = new Mesh(flashGeometry, flashMaterial);
 
@@ -73,7 +84,7 @@ export class GunEffects {
     const flashMaterial = new MeshBasicMaterial({
       color: 0xff6600,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.8,
     });
     const flash = new Mesh(flashGeometry, flashMaterial);
 
@@ -91,7 +102,7 @@ export class GunEffects {
         color: 0x111111,
         transparent: true,
         opacity: 0.8,
-        depthWrite: false
+        depthWrite: false,
       });
       const mark = new Mesh(markGeometry, markMaterial);
 
@@ -150,4 +161,4 @@ export class GunEffects {
 
     fadeFlash();
   }
-} 
+}

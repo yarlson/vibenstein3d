@@ -6,6 +6,7 @@ export enum CellType {
   Key = 3,
   PlayerSpawn = 4,
   EnemySpawn = 5,
+  CeilingLight = 6,
 }
 
 // Enemy types that can spawn in the level

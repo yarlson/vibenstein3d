@@ -16,7 +16,7 @@ export const Floor = () => {
   return (
     <mesh ref={ref} receiveShadow>
       <planeGeometry args={[FLOOR_SIZE, FLOOR_SIZE]} />
-      <meshStandardMaterial color="#444444" />
+      <meshStandardMaterial color="#222222" roughness={0.9} />
     </mesh>
   );
 };

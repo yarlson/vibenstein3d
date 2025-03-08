@@ -8,7 +8,7 @@ interface WallProps {
   color?: string;
 }
 
-export const Wall = ({ position, size = [1, 2, 1], color = '#8B4513' }: WallProps) => {
+export const Wall = ({ position, size = [1, 2, 1], color = '#553222' }: WallProps) => {
   // Create a static box for the wall
   const [ref] = useBox<Mesh>(() => ({
     type: 'Static',
