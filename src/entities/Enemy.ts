@@ -68,6 +68,36 @@ const ENEMY_CONFIGS: Record<EnemyTypeEnum, EnemyConfig> = {
 };
 
 /**
+ * Recursively checks if an object or any of its parents is an enemy.
+ * This is a strict check to avoid creating impact markers on enemies.
+ */
+function isEnemyObject(object: THREE.Object3D | null): boolean {
+  if (!object) return false;
+
+  // Check the object itself
+  if (object.userData && object.userData.type === 'enemy') {
+    return true;
+  }
+
+  // Check for enemy ID
+  if (object.userData && object.userData.parentId) {
+    return true;
+  }
+
+  // Check name for enemy identifier
+  if (object.name && object.name.toLowerCase().includes('enemy')) {
+    return true;
+  }
+
+  // Recursively check parent
+  if (object.parent) {
+    return isEnemyObject(object.parent);
+  }
+
+  return false;
+}
+
+/**
  * Enemy class for hostile NPCs
  */
 export class Enemy extends Animal {
@@ -192,6 +222,8 @@ export class Enemy extends Animal {
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.position.y = 1.5;
     body.castShadow = true;
+    // Add userData to identify as enemy
+    body.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(body);
     this.parts.body = body;
 
@@ -201,6 +233,8 @@ export class Enemy extends Animal {
     const head = new THREE.Mesh(headGeometry, headMaterial);
     head.position.y = 2.5;
     head.castShadow = true;
+    // Add userData to identify as enemy
+    head.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(head);
     this.parts.head = head;
 
@@ -209,10 +243,15 @@ export class Enemy extends Animal {
     const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
     leftEye.position.set(-0.15, 2.5, 0.3);
+    // Add userData to identify as enemy
+    leftEye.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(leftEye);
     this.parts.leftEye = leftEye;
+
     const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
     rightEye.position.set(0.15, 2.5, 0.3);
+    // Add userData to identify as enemy
+    rightEye.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(rightEye);
     this.parts.rightEye = rightEye;
 
@@ -222,11 +261,16 @@ export class Enemy extends Animal {
     const leftArm = new THREE.Mesh(armGeometry, armMaterial);
     leftArm.position.set(-0.6, 1.5, 0);
     leftArm.castShadow = true;
+    // Add userData to identify as enemy
+    leftArm.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(leftArm);
     this.parts.leftArm = leftArm;
+
     const rightArm = new THREE.Mesh(armGeometry, armMaterial);
     rightArm.position.set(0.6, 1.5, 0);
     rightArm.castShadow = true;
+    // Add userData to identify as enemy
+    rightArm.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(rightArm);
     this.parts.rightArm = rightArm;
 
@@ -235,6 +279,8 @@ export class Enemy extends Animal {
     const gunMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
     gun.position.set(0.6, 1.5, 0.4);
+    // Add userData to identify as enemy
+    gun.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(gun);
     this.parts.gun = gun;
 
@@ -244,11 +290,16 @@ export class Enemy extends Animal {
     const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
     leftLeg.position.set(-0.25, 0.5, 0);
     leftLeg.castShadow = true;
+    // Add userData to identify as enemy
+    leftLeg.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(leftLeg);
     this.parts.leftLeg = leftLeg;
+
     const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
     rightLeg.position.set(0.25, 0.5, 0);
     rightLeg.castShadow = true;
+    // Add userData to identify as enemy
+    rightLeg.userData = { type: 'enemy', parentId: this.id };
     this.mesh.add(rightLeg);
     this.parts.rightLeg = rightLeg;
 
@@ -407,7 +458,16 @@ export class Enemy extends Animal {
     if (intersects.length > 0 && intersects[0].distance < distanceToTravel) {
       const hitPoint = intersects[0].point;
       const normal = intersects[0].face?.normal || new THREE.Vector3(0, 1, 0);
-      this.createImpactEffect(hitPoint, normal);
+      const hitObject = intersects[0].object;
+
+      // Use the isEnemyObject function for a more thorough check
+      const isEnemy = isEnemyObject(hitObject);
+      if (!isEnemy) {
+        this.createImpactEffect(hitPoint, normal, hitObject);
+      } else {
+        // For enemies, create particles but no impact mark
+        this.createImpactParticlesOnly(hitPoint, normal);
+      }
       return true;
     }
     return false;
@@ -431,7 +491,86 @@ export class Enemy extends Animal {
     return false;
   }
 
-  private createImpactEffect(position: THREE.Vector3, normal: THREE.Vector3): void {
+  private createImpactEffect(
+    position: THREE.Vector3,
+    normal: THREE.Vector3,
+    hitObject: THREE.Object3D
+  ): void {
+    // Create particle effects
+    const particleCount = 5;
+    const particles: THREE.Mesh[] = [];
+    for (let i = 0; i < particleCount; i++) {
+      const size = 0.02 + Math.random() * 0.03;
+      const geometry = new THREE.SphereGeometry(size, 8, 8);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const particle = new THREE.Mesh(geometry, material);
+      particle.position.copy(position);
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2
+      );
+      if (velocity.dot(normal) < 0) velocity.reflect(normal);
+      velocity.multiplyScalar(2 + Math.random() * 3);
+      particle.userData = {
+        velocity: velocity,
+        lifetime: 0,
+        maxLifetime: 0.5 + Math.random() * 0.5,
+      };
+      this.scene.add(particle);
+      particles.push(particle);
+    }
+
+    // Replace window.particles with gameStore particles
+    const gameStore = useGameStore.getState();
+    particles.forEach((particle) => {
+      gameStore.addParticle(particle);
+    });
+
+    // STRICT check: Only create impact marker if this is absolutely not an enemy
+    if (!isEnemyObject(hitObject)) {
+      // Add a black impact marker that will fade out gradually
+      const markSize = 0.1; // Size of the impact mark
+      const markGeometry = new THREE.CircleGeometry(markSize, 16); // Use CircleGeometry for a perfect circle
+      const markMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000, // Black color
+        transparent: true,
+        opacity: 0.9, // Start with high opacity
+        depthWrite: false, // Prevents z-fighting with the wall
+        side: THREE.DoubleSide, // Visible from both sides
+      });
+      const mark = new THREE.Mesh(markGeometry, markMaterial);
+
+      // Position the mark slightly in front of the impact point along the normal
+      mark.position.copy(position).addScaledVector(normal.clone().normalize(), 0.01);
+
+      // Set up the rotation to align with the normal
+      if (normal.lengthSq() > 0) {
+        mark.lookAt(position.clone().add(normal));
+      }
+
+      // Add userData for the mark to track lifetime and fading
+      mark.userData = {
+        parentObject: hitObject,
+        lifetime: 0,
+        maxLifetime: 5.0, // 5 seconds lifetime
+        initialOpacity: 0.9,
+        fadeRate: 0.05, // Will fade based on delta time
+      };
+
+      // Add the mark to the scene and to the gameStore for tracking
+      this.scene.add(mark);
+      gameStore.addImpactMarker(mark);
+    }
+  }
+
+  // New method that only creates particles, no impact marker
+  private createImpactParticlesOnly(position: THREE.Vector3, normal: THREE.Vector3): void {
+    // Create particle effects
     const particleCount = 5;
     const particles: THREE.Mesh[] = [];
     for (let i = 0; i < particleCount; i++) {

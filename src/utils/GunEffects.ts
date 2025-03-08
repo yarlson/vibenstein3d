@@ -8,9 +8,40 @@ import {
   Line,
   LineBasicMaterial,
   Float32BufferAttribute,
-  PlaneGeometry,
+  CircleGeometry,
+  Object3D,
 } from 'three';
 import { useGameStore } from '../state/gameStore';
+
+/**
+ * Recursively checks if an object or any of its parents is an enemy.
+ * This is a strict check to avoid creating impact markers on enemies.
+ */
+function isEnemyObject(object: Object3D | null): boolean {
+  if (!object) return false;
+
+  // Check the object itself
+  if (object.userData && object.userData.type === 'enemy') {
+    return true;
+  }
+
+  // Check for enemy ID
+  if (object.userData && object.userData.parentId) {
+    return true;
+  }
+
+  // Check name for enemy identifier
+  if (object.name && object.name.toLowerCase().includes('enemy')) {
+    return true;
+  }
+
+  // Recursively check parent
+  if (object.parent) {
+    return isEnemyObject(object.parent);
+  }
+
+  return false;
+}
 
 export class GunEffects {
   private scene: Scene;
@@ -95,15 +126,15 @@ export class GunEffects {
     // Add to scene
     this.scene.add(flash);
 
-    // Create impact mark regardless of what we hit (as long as we hit something)
-    if (hitObject) {
-      // Create a more visible impact mark
-      const markSize = 0.4; // Larger mark
-      const markGeometry = new PlaneGeometry(markSize, markSize);
+    // STRICT check: Do not create any impact markers on enemies under any circumstances
+    if (hitObject && !isEnemyObject(hitObject)) {
+      // Create a black circular impact mark (only for non-enemy objects)
+      const markSize = 0.1; // Size of the impact mark
+      const markGeometry = new CircleGeometry(markSize, 16); // Circle geometry for perfect circle
       const markMaterial = new MeshBasicMaterial({
-        color: 0x000000, // Black for better visibility
+        color: 0x000000, // Black color
         transparent: true,
-        opacity: 0.9, // More opaque
+        opacity: 0.9, // Start with high opacity
         depthWrite: false, // Prevents z-fighting
         side: 2, // DoubleSide - visible from both sides
       });
@@ -113,51 +144,27 @@ export class GunEffects {
       const normalizedNormal = normal.clone().normalize();
 
       // Position mark slightly in front of the impact point along the normal
-      // to avoid z-fighting with the wall, but push it out more
-      mark.position.copy(position).addScaledVector(normalizedNormal, 0.02);
+      mark.position.copy(position).addScaledVector(normalizedNormal, 0.01);
 
       // Set up the rotation to align with the normal
-      // We need the mark to face outward from the surface it hit
       if (normalizedNormal.lengthSq() > 0) {
         // Find rotation that aligns with the normal
         mark.lookAt(position.clone().add(normalizedNormal));
-        // Adjust rotation to face outward from the surface
-        mark.rotateY(Math.PI); // Rotate 180 degrees
       }
 
-      // Store reference to hit object for cleanup
-      mark.userData.parentObject = hitObject;
-      // Add creation time for lifetime tracking
-      mark.userData.createdAt = performance.now();
-      mark.userData.lifetime = 0;
-      mark.userData.maxLifetime = 10; // 10 seconds lifetime (longer to debug)
+      // Store reference to hit object for cleanup and add userData for tracking
+      mark.userData = {
+        parentObject: hitObject,
+        lifetime: 0,
+        maxLifetime: 5.0, // 5 seconds lifetime
+        initialOpacity: 0.9,
+        fadeRate: 0.05, // Will fade based on delta time in game update loop
+      };
 
       // Add to scene and add to game store for tracking
       this.scene.add(mark);
-
       const gameStore = useGameStore.getState();
-      gameStore.addImpactMarker(mark); // Use the dedicated impact marker function
-
-      // Fade out mark over time
-      const startTime = performance.now();
-      const duration = 10000; // 10 seconds (longer for debugging)
-
-      const fadeMark = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = elapsed / duration;
-
-        if (progress < 1 && mark.parent) {
-          mark.material.opacity = 0.8 * (1 - progress);
-          requestAnimationFrame(fadeMark);
-        } else if (mark.parent) {
-          this.scene.remove(mark);
-          // Remove from game store using the impact marker function
-          const gameStore = useGameStore.getState();
-          gameStore.removeImpactMarker(mark);
-        }
-      };
-
-      fadeMark();
+      gameStore.addImpactMarker(mark);
     }
 
     // Fade out flash

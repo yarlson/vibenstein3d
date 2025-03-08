@@ -1,18 +1,48 @@
 import {
   Scene,
   Camera,
-  Group,
   Mesh,
-  Raycaster,
-  Object3D,
-  Vector3,
-  SphereGeometry,
+  Group,
   MeshBasicMaterial,
+  Vector3,
+  Raycaster,
   PlaneGeometry,
+  SphereGeometry,
+  Object3D,
 } from 'three';
 import { GunEffects } from '../utils/GunEffects';
 import { useEnemyStore } from '../state/enemyStore';
 import { useGameStore } from '../state/gameStore';
+
+/**
+ * Recursively checks if an object or any of its parents is an enemy.
+ * This is a strict check to avoid creating impact markers on enemies.
+ */
+function isEnemyObject(object: Object3D | null): boolean {
+  if (!object) return false;
+
+  // Check the object itself
+  if (object.userData && object.userData.type === 'enemy') {
+    return true;
+  }
+
+  // Check for enemy ID
+  if (object.userData && object.userData.parentId) {
+    return true;
+  }
+
+  // Check name for enemy identifier
+  if (object.name && object.name.toLowerCase().includes('enemy')) {
+    return true;
+  }
+
+  // Recursively check parent
+  if (object.parent) {
+    return isEnemyObject(object.parent);
+  }
+
+  return false;
+}
 
 // Interface for objects that can take damage
 interface DamageableObject {
@@ -227,16 +257,9 @@ export class Gun {
       console.log('No enemies found in store. Cannot check for collisions.');
     }
 
-    // 2. Check for wall collisions
+    // 2. Check for wall/environment collisions using raycasting
     const walls = gameStore.walls;
-    if (walls.length > 0) {
-      if (!bullet.userData.previousPosition) {
-        // If this is the first update, set the previous position to be slightly behind the current position
-        bullet.userData.previousPosition = bullet.position
-          .clone()
-          .sub(bullet.userData.direction.clone().multiplyScalar(0.1));
-      }
-
+    if (walls.length > 0 && bullet.userData.previousPosition) {
       // Calculate direction and distance for raycasting
       const rayDirection = bullet.userData.direction.clone().normalize();
       const rayFrom = bullet.userData.previousPosition.clone();
@@ -252,13 +275,6 @@ export class Gun {
       if (intersects.length > 0) {
         // Ensure the hit object has userData for the mark
         const hitObject = intersects[0].object as Mesh;
-        if (!hitObject.userData) {
-          hitObject.userData = {};
-        }
-        // Make sure it has a type, even if just generic
-        if (!hitObject.userData.type) {
-          hitObject.userData.type = 'wall';
-        }
 
         // Get the impact point and normal
         const impactPoint = intersects[0].point.clone();
@@ -271,49 +287,16 @@ export class Gun {
           impactNormal = bullet.userData.direction.clone().negate();
         }
 
-        // WORKAROUND: Create impact directly with scene
-        // This bypasses normal effects path for impact debug
-        try {
-          // Create a more visible impact mark directly here
-          const markSize = 0.5; // Larger mark for debugging
-          const markGeometry = new PlaneGeometry(markSize, markSize);
-          const markMaterial = new MeshBasicMaterial({
-            color: 0xff0000, // RED for debug
-            transparent: true,
-            opacity: 0.9,
-            depthWrite: false,
-            side: 2, // DoubleSide
-          });
-          const mark = new Mesh(markGeometry, markMaterial);
+        // Use the strict isEnemyObject check
+        const isEnemy = isEnemyObject(hitObject);
 
-          // Ensure normal is normalized
-          const normalizedNormal = impactNormal.normalize();
-
-          // Position mark
-          mark.position.copy(impactPoint).addScaledVector(normalizedNormal, 0.03);
-
-          // Set up the rotation
-          mark.lookAt(impactPoint.clone().add(normalizedNormal));
-          mark.rotateY(Math.PI); // Rotate 180 degrees
-
-          // Add to scene directly
-          this.scene.add(mark);
-
-          // Store in game store
-          const gameStore = useGameStore.getState();
-          gameStore.addImpactMarker(mark);
-
-          // Set up auto-removal
-          setTimeout(() => {
-            this.scene.remove(mark);
-            gameStore.removeImpactMarker(mark);
-          }, 15000); // 15 seconds
-        } catch (e) {
-          console.error('Error creating direct impact mark:', e);
+        if (isEnemy) {
+          // For enemies, just create a hit effect with no impact marker
+          this.createEnemyHitEffect(impactPoint.clone());
+        } else {
+          // For walls and other objects, create normal impact effect
+          this.effects.createImpactEffect(impactPoint, impactNormal, hitObject);
         }
-
-        // Also create impact effect the normal way
-        this.effects.createImpactEffect(impactPoint, impactNormal, hitObject);
 
         return true;
       }

@@ -248,15 +248,8 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
           particle.position.add(particle.userData.velocity.clone().multiplyScalar(delta));
         }
 
-        // Apply gravity
-        if (particle.userData.velocity) {
-          particle.userData.velocity.y -= 9.8 * delta;
-        }
-
-        // Update lifetime
+        // Update lifetime and remove if expired
         particle.userData.lifetime += delta;
-
-        // Check if particle has exceeded max lifetime
         if (particle.userData.lifetime > particle.userData.maxLifetime) {
           // Remove particle
           scene.remove(particle);
@@ -265,38 +258,51 @@ export const EnemyManager: React.FC<EnemyManagerProps> = ({ level }) => {
       }
     }
 
-    // Check for impact markers with parent objects that no longer exist
+    // Update impact markers - gradual fade out based on lifetime
     if (impactMarkers.length > 0) {
       for (let i = impactMarkers.length - 1; i >= 0; i--) {
         const marker = impactMarkers[i];
 
-        // If the marker doesn't have a parent object, skip checking
-        if (!marker.userData.parentObject) {
-          continue;
+        // Update lifetime
+        marker.userData.lifetime += delta;
+
+        // Check if marker has material with opacity
+        if (marker.material) {
+          // Need to check if it's an array of materials or a single material
+          const material = Array.isArray(marker.material)
+            ? (marker.material[0] as THREE.MeshBasicMaterial)
+            : (marker.material as THREE.MeshBasicMaterial);
+
+          if (material.opacity !== undefined) {
+            // Calculate fading opacity based on lifetime
+            const initialOpacity = marker.userData.initialOpacity || 0.9;
+            const progress = marker.userData.lifetime / marker.userData.maxLifetime;
+
+            // Apply fading - gradually decrease opacity
+            material.opacity = initialOpacity * (1 - progress);
+
+            // If opacity is very low or lifetime exceeded, remove the marker
+            if (
+              material.opacity < 0.05 ||
+              marker.userData.lifetime >= marker.userData.maxLifetime
+            ) {
+              scene.remove(marker);
+              removeImpactMarker(marker);
+              continue;
+            }
+          }
         }
 
-        const parentObject = marker.userData.parentObject;
+        // Also check if marker's parent object still exists in scene (previous functionality)
+        if (marker.userData.parentObject) {
+          const parentObject = marker.userData.parentObject;
 
-        // Check if parentObject still exists in scene
-        if (!parentObject.parent) {
-          scene.remove(marker);
-          removeImpactMarker(marker);
-          continue;
+          // If parent object is no longer in the scene, remove the marker
+          if (!parentObject.parent) {
+            scene.remove(marker);
+            removeImpactMarker(marker);
+          }
         }
-
-        // Check if parentObject is an enemy that died
-        if (
-          parentObject.userData &&
-          parentObject.userData.type === 'enemy' &&
-          !parentObject.userData.alive
-        ) {
-          scene.remove(marker);
-          removeImpactMarker(marker);
-          continue;
-        }
-
-        // For wall objects, keep the marker (they're removed by the fade timeout)
-        // No additional checks needed for walls as they are static
       }
     }
   });

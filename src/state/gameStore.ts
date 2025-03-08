@@ -150,10 +150,41 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // Impact markers
   impactMarkers: [],
-  addImpactMarker: (marker) =>
+  addImpactMarker: (marker) => {
+    // STRICTLY prevent any impact markers on enemies
+    // Check if the marker is associated with an enemy
+    if (marker.userData && marker.userData.parentObject) {
+      const parentObject = marker.userData.parentObject;
+
+      // Check all possible ways the object could be identified as an enemy
+      const isEnemy =
+        // Direct type check
+        (parentObject.userData && parentObject.userData.type === 'enemy') ||
+        // Parent type check (for child meshes)
+        (parentObject.parent &&
+          parentObject.parent.userData &&
+          parentObject.parent.userData.type === 'enemy') ||
+        // Check for enemy ID (sometimes used instead of type)
+        (parentObject.userData && parentObject.userData.parentId) ||
+        // Check object name for enemy identifier
+        (parentObject.name && parentObject.name.toLowerCase().includes('enemy'));
+
+      // If this is associated with an enemy, do not add the marker
+      if (isEnemy) {
+        // Remove from scene immediately
+        if (marker.parent) {
+          marker.parent.remove(marker);
+        }
+        console.log('Blocked impact marker on enemy');
+        return;
+      }
+    }
+
+    // Only add the marker if it passed the enemy check
     set((state) => ({
       impactMarkers: [...state.impactMarkers, marker],
-    })),
+    }));
+  },
   removeImpactMarker: (marker) =>
     set((state) => ({
       impactMarkers: state.impactMarkers.filter((m) => m !== marker),
