@@ -9,15 +9,6 @@ export enum CellType {
   CeilingLight = 6,
 }
 
-// Light types for the lights grid
-export enum LightType {
-  None = 0,
-  WarmLight = 1, // Warm yellowish light
-  CoolLight = 2, // Cool bluish light
-  BrightLight = 3, // Bright white light
-  DimLight = 4, // Dim ambient light
-}
-
 // Enemy types that can spawn in the level
 export enum EnemyType {
   Grunt = 'grunt',
@@ -35,7 +26,7 @@ export interface EnemySpawn {
 // Level definition interface
 export interface LevelData {
   grid: CellType[][]; // 2D array representing the level layout
-  lights?: LightType[][]; // 2D array for light placements (using predefined light types)
+  lights?: number[][]; // 2D array for light placements using simple numbers: 0=None, 1=Warm, 2=Cool, 3=Bright, 4=Dim
   enemies: EnemySpawn[];
   name: string;
   playerSpawn?: [number, number]; // Optional specific player spawn point [x, z]
