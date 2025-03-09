@@ -1,5 +1,6 @@
 import React from 'react';
 import { ToolbarElementType, TOOLBAR_ELEMENTS, EditorMode } from '../types/editorTypes';
+import { CellType } from '../../types/level';
 import './EditorComponents.css';
 
 // Props for the Toolbar component
@@ -22,20 +23,37 @@ const Toolbar: React.FC<ToolbarProps> = ({
   mode,
   onToggleMode,
 }) => {
+  // Get button background color based on cell type
+  const getButtonBackgroundColor = (cellType: number): string => {
+    switch (cellType) {
+      case CellType.WallRed: return '#b22222'; // Wall Red
+      case CellType.WallBlue: return '#2a4d69'; // Wall Blue
+      case CellType.WallGreen: return '#228B22'; // Wall Green
+      case CellType.WallYellow: return '#b8860b'; // Wall Yellow
+      case CellType.WallPurple: return '#6a0dad'; // Wall Purple
+      default: return '';
+    }
+  };
+
   return (
     <div className="editor-toolbar">
       <div className="editor-toolbar-elements">
-        {TOOLBAR_ELEMENTS.map((element) => (
-          <button
-            key={element.id}
-            className={`toolbar-button ${selectedElement?.id === element.id ? 'selected' : ''}`}
-            onClick={() => onSelectElement(element)}
-            title={element.name}
-          >
-            <span className="element-icon">{element.icon}</span>
-            <span className="element-name">{element.name}</span>
-          </button>
-        ))}
+        {TOOLBAR_ELEMENTS.map((element) => {
+          const bgColor = getButtonBackgroundColor(element.cellType);
+          
+          return (
+            <button
+              key={element.id}
+              className={`toolbar-button ${selectedElement?.id === element.id ? 'selected' : ''}`}
+              onClick={() => onSelectElement(element)}
+              title={element.name}
+              style={bgColor ? { backgroundColor: bgColor } : undefined}
+            >
+              <span className="element-icon">{element.icon}</span>
+              <span className="element-name">{element.name}</span>
+            </button>
+          );
+        })}
       </div>
       
       <div className="editor-toolbar-actions">

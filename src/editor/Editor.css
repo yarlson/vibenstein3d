@@ -99,7 +99,7 @@
 .editor-left-pane {
   display: flex;
   flex-direction: column;
-  width: 60%;
+  width: 70%;
   height: 100%;
   overflow: hidden;
 }
@@ -111,7 +111,7 @@
 }
 
 .editor-right-pane {
-  width: 40%;
+  width: 30%;
   height: 100%;
   overflow: hidden;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ToolbarElementType } from '../types/editorTypes';
-import { LevelData, CELL_SIZE } from '../../types/level';
+import { LevelData } from '../../types/level';
 import './EditorComponents.css';
 
 // Define the position type for grid elements
@@ -8,6 +8,9 @@ export type GridPosition = {
   row: number;
   col: number;
 };
+
+// Default editor cell size (larger than game cell size for better editing)
+const DEFAULT_EDITOR_CELL_SIZE = 30;
 
 interface GridEditorProps {
   levelData: LevelData;
@@ -34,7 +37,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
 }) => {
   const [rows, setRows] = useState<number>(levelData.grid.length);
   const [cols, setColumns] = useState<number>(levelData.grid[0].length);
-  const [cellSize, setCellSize] = useState<number>(CELL_SIZE);
+  const [cellSize, setCellSize] = useState<number>(DEFAULT_EDITOR_CELL_SIZE);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragPosition, setDragPosition] = useState<GridPosition | null>(null);
   
@@ -99,7 +102,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
   
   // Get cell icon based on cell type
   const getCellIcon = (cellType: number): string => {
-    // Map cell types to icons
+    // Map cell types to icons - ensure consistency with toolbar icons
     switch (cellType) {
       case 0: return ''; // Empty
       case 1: return '🧱'; // Wall
@@ -112,6 +115,8 @@ const GridEditor: React.FC<GridEditorProps> = ({
       case 3: return '🔑'; // Key
       case 4: return '👤'; // Player Spawn
       case 5: return '👹'; // Enemy Spawn
+      case 6:
+      case 10: return '💡'; // Light
       default: return '';
     }
   };
@@ -169,31 +174,35 @@ const GridEditor: React.FC<GridEditorProps> = ({
         }}
       >
         {levelData.grid.map((row, rowIndex) => 
-          row.map((cell, colIndex) => (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              className={`grid-cell ${
-                selectedPosition && 
-                selectedPosition.row === rowIndex && 
-                selectedPosition.col === colIndex
-                  ? 'selected'
-                  : ''
-              }`}
-              style={{
-                backgroundColor: getCellColor(cell),
-                width: `${cellSize}px`,
-                height: `${cellSize}px`,
-              }}
-              onClick={() => handleCellClick(rowIndex, colIndex)}
-              onMouseDown={() => handleDragStart(rowIndex, colIndex)}
-              onMouseOver={() => handleDragOver(rowIndex, colIndex)}
-              onMouseUp={handleDragEnd}
-            >
-              <span className="cell-icon">{getCellIcon(cell)}</span>
-              {/* Show coordinates in dev mode */}
-              <span className="cell-coords">{`${rowIndex},${colIndex}`}</span>
-            </div>
-          ))
+          row.map((cell, colIndex) => {
+            const cellIcon = getCellIcon(cell);
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`grid-cell ${
+                  selectedPosition && 
+                  selectedPosition.row === rowIndex && 
+                  selectedPosition.col === colIndex
+                    ? 'selected'
+                    : ''
+                }`}
+                style={{
+                  backgroundColor: getCellColor(cell),
+                  width: `${cellSize}px`,
+                  height: `${cellSize}px`,
+                  fontSize: `${Math.max(cellSize / 2.5, 16)}px`, // Adjust icon size based on cell size
+                }}
+                onClick={() => handleCellClick(rowIndex, colIndex)}
+                onMouseDown={() => handleDragStart(rowIndex, colIndex)}
+                onMouseOver={() => handleDragOver(rowIndex, colIndex)}
+                onMouseUp={handleDragEnd}
+              >
+                {cellIcon && <span className="cell-icon">{cellIcon}</span>}
+                {/* Show coordinates in dev mode */}
+                <span className="cell-coords">{`${rowIndex},${colIndex}`}</span>
+              </div>
+            );
+          })
         )}
       </div>
       
