@@ -49,12 +49,12 @@ const LIGHT_CONFIGS: {
 const WALL_COLORS: {
   [key: number]: string;
 } = {
-  [CellType.Wall]: '#553222', // Default brown wall
-  [CellType.WallRed]: '#992222', // Red wall
-  [CellType.WallBlue]: '#224499', // Blue wall
-  [CellType.WallGreen]: '#229922', // Green wall
-  [CellType.WallYellow]: '#998822', // Yellow wall
-  [CellType.WallPurple]: '#772277', // Purple wall
+  [CellType.Wall]: '#6e6658', // Muted stone/grey wall (default)
+  [CellType.WallRed]: '#b22222', // Firebrick red
+  [CellType.WallBlue]: '#2a4d69', // Deep blue
+  [CellType.WallGreen]: '#228B22', // Forest green
+  [CellType.WallYellow]: '#b8860b', // Dark goldenrod yellow
+  [CellType.WallPurple]: '#6a0dad', // Deep purple
 };
 
 export const LevelGrid = ({ level }: LevelGridProps) => {

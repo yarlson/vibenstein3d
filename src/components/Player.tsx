@@ -192,13 +192,13 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
 
   // Handle mobile camera rotation
   const handleCameraRotation = useCallback(
-      (amount: number) => {
-        if (controlsRef.current) {
-          const current = camera.rotation.y;
-          camera.rotation.y = current + amount;
-        }
-      },
-      [camera]
+    (amount: number) => {
+      if (controlsRef.current) {
+        const current = camera.rotation.y;
+        camera.rotation.y = current + amount;
+      }
+    },
+    [camera]
   );
 
   // Store mobile control handlers in Zustand store
@@ -248,11 +248,11 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
       // Only update horizontal velocity; keep the vertical velocity intact
       api.velocity.set(direction.x, velocity.current.y, direction.z);
     } else if (
-        !mobileMovement.active &&
-        !movement.forward &&
-        !movement.backward &&
-        !movement.left &&
-        !movement.right
+      !mobileMovement.active &&
+      !movement.forward &&
+      !movement.backward &&
+      !movement.left &&
+      !movement.right
     ) {
       api.velocity.set(0, velocity.current.y, 0);
     }
@@ -279,15 +279,15 @@ export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   });
 
   return (
-      <>
-        <mesh ref={ref} visible={false}>
-          <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
-          <meshStandardMaterial color="red" transparent opacity={0.5} />
-        </mesh>
-        <PointerLockControls ref={controlsRef} />
-        <primitive object={camera}>
-          <Weapon />
-        </primitive>
-      </>
+    <>
+      <mesh ref={ref} visible={false}>
+        <boxGeometry args={[PLAYER_RADIUS * 2, PLAYER_HEIGHT, PLAYER_RADIUS * 2]} />
+        <meshStandardMaterial color="red" transparent opacity={0.5} />
+      </mesh>
+      <PointerLockControls ref={controlsRef} />
+      <primitive object={camera}>
+        <Weapon />
+      </primitive>
+    </>
   );
 };

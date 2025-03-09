@@ -9,4 +9,4 @@ export const triggerCameraShake = (intensity = 0.5) => {
   if (typeof gameShakeCamera === 'function') {
     gameShakeCamera(intensity);
   }
-}; 
+};

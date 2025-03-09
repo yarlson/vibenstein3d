@@ -481,7 +481,9 @@ export class Enemy extends Animal {
       // Damage player
       const takeDamage = usePlayerStore.getState().takeDamage;
       takeDamage(bullet.userData.damage);
-      this.createBloodEffect(new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2]));
+      this.createBloodEffect(
+        new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2])
+      );
 
       // Use the triggerCameraShake function from EnemyController
       triggerCameraShake(0.5);

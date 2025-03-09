@@ -1,6 +1,6 @@
 import { usePlane } from '@react-three/cannon';
-import { useMemo } from 'react';
-import { Mesh } from 'three';
+import { useEffect, useMemo, useRef } from 'react';
+import { DirectionalLight, Mesh } from 'three';
 import { CELL_SIZE, WALL_HEIGHT } from '../types/level';
 
 // Calculate ceiling size dynamically based on the scene
@@ -41,7 +41,7 @@ export const Ceiling = ({ lights = [], size }: CeilingProps) => {
   // Create a grid texture pattern (we're not loading actual textures to keep it simple)
   const ceilingMaterial = useMemo(() => {
     return {
-      color: '#222222',
+      color: '#555555',
       roughness: 0.8,
       metalness: 0.2,
     };
@@ -100,6 +100,32 @@ export const Ceiling = ({ lights = [], size }: CeilingProps) => {
     });
   }, [lights, ceilingHeight, gridCenterX, gridCenterZ]);
 
+  // Create a reference for the sun-like directional light
+  const sunRef = useRef<DirectionalLight>(null);
+
+  // Configure the sun-like directional light when mounted
+  useEffect(() => {
+    if (sunRef.current) {
+      sunRef.current.castShadow = true;
+      // Increase shadow map resolution for better quality
+      sunRef.current.shadow.mapSize.width = 2048;
+      sunRef.current.shadow.mapSize.height = 2048;
+
+      // Set up the shadow camera frustum to cover the scene
+      const d = 50;
+      sunRef.current.shadow.camera.left = -d;
+      sunRef.current.shadow.camera.right = d;
+      sunRef.current.shadow.camera.top = d;
+      sunRef.current.shadow.camera.bottom = -d;
+      sunRef.current.shadow.camera.near = 1;
+      sunRef.current.shadow.camera.far = 200;
+
+      // Set the target of the directional light to the center of the scene
+      sunRef.current.target.position.set(0, 0, 0);
+      sunRef.current.target.updateMatrixWorld();
+    }
+  }, []);
+
   return (
     <group>
       {/* Ceiling plane */}
@@ -139,19 +165,17 @@ export const Ceiling = ({ lights = [], size }: CeilingProps) => {
               emissiveIntensity={2.5}
             />
           </mesh>
-
-          {/* Point light */}
-          <pointLight
-            color={fixture.color}
-            intensity={fixture.intensity || 2.5}
-            distance={fixture.distance || 15}
-            decay={1.5}
-            castShadow
-            shadow-mapSize-width={512}
-            shadow-mapSize-height={512}
-          />
         </group>
       ))}
+
+      {/* Sun-like directional light with vertical rays */}
+      <directionalLight
+        ref={sunRef}
+        position={[0, ceilingHeight - 1, 0]} // Positioned directly above the scene
+        intensity={3.0}
+        color="#fdfbd3" // Warm sunlight color
+        castShadow
+      />
     </group>
   );
 };
