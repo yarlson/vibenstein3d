@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { usePlayerStore } from '../state/playerStore';
+import React, {useEffect, useRef} from 'react';
+import {usePlayerStore} from '../state/playerStore';
 import levelDataJson from '../levels/level1.json';
-import { CELL_SIZE, CellType } from '../types/level';
+import {CELL_SIZE, CellType} from '../types/level';
 
 // Map colors for different cell types
 const CELL_COLORS = {
@@ -10,8 +10,6 @@ const CELL_COLORS = {
   [CellType.Door]: '#8B4513', // Door
   [CellType.Key]: '#FFD700', // Key
   [CellType.PlayerSpawn]: '#ff5555', // Player spawn
-  [CellType.EnemySpawn]: '#ff0000', // Enemy spawn
-  [CellType.CeilingLight]: '#ffff00', // Ceiling light
   [CellType.WallRed]: '#2E2E2E', // Special wall colors
   [CellType.WallBlue]: '#3A3A3A',
   [CellType.WallGreen]: '#464646',
@@ -56,9 +54,15 @@ export const Minimap: React.FC = () => {
     // Draw level
     levelDataJson.grid.forEach((row: number[], rowIndex: number) => {
       row.forEach((cell: number, colIndex: number) => {
-        const color = CELL_COLORS[cell as keyof typeof CELL_COLORS] || '#333';
+        // Skip drawing enemy spawn points and ceiling lights
+        if (cell === CellType.EnemySpawn || cell === CellType.CeilingLight) {
+          // Draw as empty space instead
+          ctx.fillStyle = CELL_COLORS[CellType.Empty];
+          ctx.fillRect(colIndex * cellSize, rowIndex * cellSize, cellSize, cellSize);
+          return;
+        }
 
-        ctx.fillStyle = color;
+        ctx.fillStyle = CELL_COLORS[cell as keyof typeof CELL_COLORS] || '#333';
         ctx.fillRect(colIndex * cellSize, rowIndex * cellSize, cellSize, cellSize);
       });
     });
