@@ -20,6 +20,7 @@ interface GridEditorProps {
   onMoveGridElement: (fromPosition: GridPosition, toPosition: GridPosition) => void;
   selectedPosition: GridPosition | null;
   onUpdateGridDimensions: (rows: number, cols: number, cellSize: number) => void;
+  currentLayer: 'walls' | 'lights';
 }
 
 /**
@@ -34,6 +35,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
   onMoveGridElement,
   selectedPosition,
   onUpdateGridDimensions,
+  currentLayer,
 }) => {
   const [rows, setRows] = useState<number>(levelData.grid.length);
   const [cols, setColumns] = useState<number>(levelData.grid[0].length);
@@ -112,6 +114,25 @@ const GridEditor: React.FC<GridEditorProps> = ({
     }
   };
 
+  // Get light color based on light type
+  const getLightColor = (lightType: number): string => {
+    // Map light types to colors
+    switch (lightType) {
+      case 0:
+        return 'transparent'; // No light
+      case 1:
+        return 'rgba(255, 170, 85, 0.5)'; // Warm light
+      case 2:
+        return 'rgba(170, 221, 255, 0.5)'; // Cool light
+      case 3:
+        return 'rgba(255, 255, 255, 0.5)'; // Bright light
+      case 4:
+        return 'rgba(255, 221, 204, 0.5)'; // Dim light
+      default:
+        return 'transparent';
+    }
+  };
+
   // Get cell icon based on cell type
   const getCellIcon = (cellType: number): string => {
     // Map cell types to icons - ensure consistency with toolbar icons
@@ -144,6 +165,27 @@ const GridEditor: React.FC<GridEditorProps> = ({
       default:
         return '';
     }
+  };
+
+  // Get light icon based on light type
+  const getLightIcon = (lightType: number): string => {
+    if (lightType > 0) {
+      return '💡'; // Show light icon for any light type > 0
+    }
+    return '';
+  };
+
+  // Get current layer data
+  const getLayerData = (row: number, col: number) => {
+    // Get wall/grid cell type
+    const cellType = levelData.grid[row][col];
+    
+    // Get light type (if lights exist)
+    const lightType = levelData.lights && levelData.lights[row] && levelData.lights[row][col]
+      ? levelData.lights[row][col]
+      : 0;
+      
+    return { cellType, lightType };
   };
 
   return (
@@ -200,7 +242,10 @@ const GridEditor: React.FC<GridEditorProps> = ({
       >
         {levelData.grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
-            const cellIcon = getCellIcon(cell);
+            const { cellType, lightType } = getLayerData(rowIndex, colIndex);
+            const wallIcon = getCellIcon(cellType);
+            const lightIcon = getLightIcon(lightType);
+            
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -212,7 +257,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
                     : ''
                 }`}
                 style={{
-                  backgroundColor: getCellColor(cell),
+                  backgroundColor: getCellColor(cellType),
                   width: `${cellSize}px`,
                   height: `${cellSize}px`,
                   fontSize: `${Math.max(cellSize / 2.5, 16)}px`, // Adjust icon size based on cell size
@@ -222,7 +267,20 @@ const GridEditor: React.FC<GridEditorProps> = ({
                 onMouseOver={() => handleDragOver(rowIndex, colIndex)}
                 onMouseUp={handleDragEnd}
               >
-                {cellIcon && <span className="cell-icon">{cellIcon}</span>}
+                {/* Wall layer */}
+                {wallIcon && <span className="cell-icon wall-icon">{wallIcon}</span>}
+                
+                {/* Light layer - semi-transparent overlay */}
+                <div 
+                  className="light-overlay"
+                  style={{
+                    backgroundColor: getLightColor(lightType),
+                    opacity: currentLayer === 'lights' ? 0.8 : 0.5, // More visible when editing lights
+                  }}
+                >
+                  {lightIcon && <span className="light-icon">{lightIcon}</span>}
+                </div>
+                
                 {/* Show coordinates in dev mode */}
                 <span className="cell-coords">{`${rowIndex},${colIndex}`}</span>
               </div>

@@ -7,7 +7,7 @@ import LivePreview from './components/LivePreview';
 import { useEditorStore } from './store/editorStore';
 import { loadLevelData, saveLevelData } from './utils/levelUtils';
 import { EnemyType } from '../types/level';
-import { ToolbarElementType } from './types/editorTypes';
+import { ToolbarElementType, TOOLBAR_ELEMENTS, LIGHT_ELEMENTS, EditorLayer } from './types/editorTypes';
 import './Editor.css';
 
 /**
@@ -25,11 +25,13 @@ const Editor: React.FC = () => {
     selectedElement,
     selectedPosition,
     editorMode,
+    currentLayer,
     validationErrors,
     setLevelData,
     setSelectedElement,
     setSelectedPosition,
     setEditorMode,
+    setCurrentLayer,
     updateGridDimensions,
     placeElement,
     moveElement,
@@ -98,6 +100,11 @@ const Editor: React.FC = () => {
         alert('Rows and columns must be at least 5');
       }
     }
+  };
+
+  // Handle switching layers
+  const handleLayerChange = (layer: EditorLayer) => {
+    setCurrentLayer(layer);
   };
 
   // Handle selecting an element from the toolbar
@@ -176,6 +183,9 @@ const Editor: React.FC = () => {
     return <div className="editor-loading">No level data available</div>;
   }
 
+  // Get the appropriate toolbar elements based on the current layer
+  const toolbarElements = currentLayer === 'walls' ? TOOLBAR_ELEMENTS : LIGHT_ELEMENTS;
+
   return (
     <div className="editor-container">
       <div className="editor-header">
@@ -214,14 +224,33 @@ const Editor: React.FC = () => {
 
       <div className="editor-content">
         <div className="editor-left-pane">
+          {/* Layer Tabs */}
+          <div className="layer-tabs">
+            <button
+              className={`layer-tab walls-tab ${currentLayer === 'walls' ? 'active' : ''}`}
+              onClick={() => handleLayerChange('walls')}
+            >
+              Walls & Objects
+            </button>
+            
+            <button
+              className={`layer-tab lights-tab ${currentLayer === 'lights' ? 'active' : ''}`}
+              onClick={() => handleLayerChange('lights')}
+            >
+              Lights
+            </button>
+          </div>
+          
+          {/* Toolbar for the current layer */}
           <Toolbar
             selectedElement={selectedElement}
             onSelectElement={handleSelectElement}
             onDeleteElement={handleDeleteElement}
             mode={editorMode}
             onToggleMode={handleToggleMode}
+            elements={toolbarElements}
           />
-
+          
           <div className="editor-workspace">
             <GridEditor
               levelData={levelData}
@@ -231,8 +260,9 @@ const Editor: React.FC = () => {
               onMoveGridElement={handleMoveGridElement}
               selectedPosition={selectedPosition}
               onUpdateGridDimensions={updateGridDimensions}
+              currentLayer={currentLayer}
             />
-
+            
             <PropertyEditor
               levelData={levelData}
               selectedPosition={selectedPosition}
@@ -240,6 +270,7 @@ const Editor: React.FC = () => {
               onAddEnemy={handleAddEnemy}
               onUpdateEnemyProperty={handleUpdateEnemyProperty}
               onDeleteEnemy={handleDeleteEnemy}
+              currentLayer={currentLayer}
             />
           </div>
         </div>

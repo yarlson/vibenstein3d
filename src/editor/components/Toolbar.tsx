@@ -10,6 +10,7 @@ interface ToolbarProps {
   onDeleteElement: () => void;
   mode: EditorMode;
   onToggleMode: () => void;
+  elements?: ToolbarElementType[]; // Optional custom elements to display
 }
 
 /**
@@ -22,6 +23,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onDeleteElement,
   mode,
   onToggleMode,
+  elements = TOOLBAR_ELEMENTS, // Default to standard elements if none provided
 }) => {
   // Get button background color based on cell type
   const getButtonBackgroundColor = (cellType: number): string => {
@@ -36,6 +38,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
         return '#b8860b'; // Wall Yellow
       case CellType.WallPurple:
         return '#6a0dad'; // Wall Purple
+      case 1:
+        return '#ffaa55'; // Warm light
+      case 2:
+        return '#aaddff'; // Cool light
+      case 3:
+        return '#ffffff'; // Bright light
+      case 4:
+        return '#ffddcc'; // Dim light
       default:
         return '';
     }
@@ -44,7 +54,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div className="editor-toolbar">
       <div className="editor-toolbar-elements">
-        {TOOLBAR_ELEMENTS.map((element) => {
+        {elements.map((element) => {
           const bgColor = getButtonBackgroundColor(element.cellType);
 
           return (

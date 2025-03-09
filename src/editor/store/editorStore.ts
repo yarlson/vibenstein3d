@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { LevelData, CELL_SIZE, EnemyType } from '../../types/level';
 import { GridPosition } from '../components/GridEditor';
-import { ToolbarElementType } from '../types/editorTypes';
+import { ToolbarElementType, EditorLayer } from '../types/editorTypes';
 import { createEmptyLevel, validateLevelData } from '../utils/levelUtils';
 
 // Define the editor store state
@@ -12,6 +12,7 @@ interface EditorState {
   error: string | null;
 
   // Editor state
+  currentLayer: EditorLayer;
   selectedElement: ToolbarElementType | null;
   selectedPosition: GridPosition | null;
   editorMode: 'standard' | 'advanced';
@@ -26,6 +27,7 @@ interface EditorState {
 
   // Actions
   setLevelData: (data: LevelData) => void;
+  setCurrentLayer: (layer: EditorLayer) => void;
   setSelectedElement: (element: ToolbarElementType | null) => void;
   setSelectedPosition: (position: GridPosition | null) => void;
   setEditorMode: (mode: 'standard' | 'advanced') => void;
@@ -59,6 +61,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isLoading: false,
   error: null,
 
+  currentLayer: 'walls', // Default to walls layer
   selectedElement: null,
   selectedPosition: null,
   editorMode: 'standard',
@@ -71,6 +74,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Actions
   setLevelData: (data: LevelData) => set({ levelData: data }),
+
+  setCurrentLayer: (layer: EditorLayer) => {
+    // Clear selected element when changing layers
+    set({ 
+      currentLayer: layer,
+      selectedElement: null
+    });
+  },
 
   setSelectedElement: (element: ToolbarElementType | null) => set({ selectedElement: element }),
 
@@ -138,89 +149,163 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Grid operations
   placeElement: (position: GridPosition, element: ToolbarElementType) => {
-    const { levelData } = get();
+    const { levelData, currentLayer } = get();
 
     if (!levelData) return;
 
     const { row, col } = position;
 
-    // Create a copy of the grid
-    const newGrid = [...levelData.grid.map((row) => [...row])];
+    // Handle placing element based on the current layer
+    if (currentLayer === 'walls') {
+      // Create a copy of the grid
+      const newGrid = [...levelData.grid.map((row) => [...row])];
 
-    // Update the cell
-    newGrid[row][col] = element.cellType;
+      // Update the cell
+      newGrid[row][col] = element.cellType;
 
-    // Update the level data
-    set({
-      levelData: {
-        ...levelData,
-        grid: newGrid,
-      },
-      selectedPosition: position,
-    });
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          grid: newGrid,
+        },
+        selectedPosition: position,
+      });
+    } else if (currentLayer === 'lights') {
+      // Ensure the lights grid exists
+      const lights =
+        levelData.lights ||
+        Array(levelData.grid.length)
+          .fill(0)
+          .map(() => Array(levelData.grid[0].length).fill(0));
+
+      // Create a copy of the lights grid
+      const newLights = [...lights.map((row) => [...row])];
+
+      // Update the light
+      newLights[row][col] = element.cellType;
+
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          lights: newLights,
+        },
+        selectedPosition: position,
+      });
+    }
 
     // Validate the level
     const validation = validateLevelData({
       ...levelData,
-      grid: newGrid,
     });
 
     set({ validationErrors: validation.errors });
   },
 
   moveElement: (fromPosition: GridPosition, toPosition: GridPosition) => {
-    const { levelData } = get();
+    const { levelData, currentLayer } = get();
 
     if (!levelData) return;
 
     const { row: fromRow, col: fromCol } = fromPosition;
     const { row: toRow, col: toCol } = toPosition;
 
-    // Create a copy of the grid
-    const newGrid = [...levelData.grid.map((row) => [...row])];
+    if (currentLayer === 'walls') {
+      // Create a copy of the grid
+      const newGrid = [...levelData.grid.map((row) => [...row])];
 
-    // Get the cell type at the from position
-    const cellType = newGrid[fromRow][fromCol];
+      // Get the cell type at the from position
+      const cellType = newGrid[fromRow][fromCol];
 
-    // Update the cells
-    newGrid[toRow][toCol] = cellType;
-    newGrid[fromRow][fromCol] = 0; // Empty the original cell
+      // Update the cells
+      newGrid[toRow][toCol] = cellType;
+      newGrid[fromRow][fromCol] = 0; // Empty the original cell
 
-    // Update the level data
-    set({
-      levelData: {
-        ...levelData,
-        grid: newGrid,
-      },
-      selectedPosition: toPosition,
-    });
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          grid: newGrid,
+        },
+        selectedPosition: toPosition,
+      });
+    } else if (currentLayer === 'lights') {
+      // Ensure the lights grid exists
+      const lights =
+        levelData.lights ||
+        Array(levelData.grid.length)
+          .fill(0)
+          .map(() => Array(levelData.grid[0].length).fill(0));
+
+      // Create a copy of the lights grid
+      const newLights = [...lights.map((row) => [...row])];
+
+      // Get the light type at the from position
+      const lightType = newLights[fromRow][fromCol];
+
+      // Update the lights
+      newLights[toRow][toCol] = lightType;
+      newLights[fromRow][fromCol] = 0; // Empty the original cell
+
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          lights: newLights,
+        },
+        selectedPosition: toPosition,
+      });
+    }
   },
 
   deleteElement: () => {
-    const { levelData, selectedPosition } = get();
+    const { levelData, selectedPosition, currentLayer } = get();
 
     if (!levelData || !selectedPosition) return;
 
     const { row, col } = selectedPosition;
 
-    // Create a copy of the grid
-    const newGrid = [...levelData.grid.map((row) => [...row])];
+    if (currentLayer === 'walls') {
+      // Create a copy of the grid
+      const newGrid = [...levelData.grid.map((row) => [...row])];
 
-    // Update the cell to empty
-    newGrid[row][col] = 0;
+      // Update the cell to empty
+      newGrid[row][col] = 0;
 
-    // Update the level data
-    set({
-      levelData: {
-        ...levelData,
-        grid: newGrid,
-      },
-    });
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          grid: newGrid,
+        },
+      });
+    } else if (currentLayer === 'lights') {
+      // Ensure the lights grid exists
+      const lights =
+        levelData.lights ||
+        Array(levelData.grid.length)
+          .fill(0)
+          .map(() => Array(levelData.grid[0].length).fill(0));
+
+      // Create a copy of the lights grid
+      const newLights = [...lights.map((row) => [...row])];
+
+      // Update the light to empty
+      newLights[row][col] = 0;
+
+      // Update the level data
+      set({
+        levelData: {
+          ...levelData,
+          lights: newLights,
+        },
+      });
+    }
 
     // Validate the level
     const validation = validateLevelData({
       ...levelData,
-      grid: newGrid,
     });
 
     set({ validationErrors: validation.errors });

@@ -189,6 +189,35 @@
   z-index: 1;
 }
 
+.wall-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Light layer styling */
+.light-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none; /* Allow clicks to pass through to the cell */
+}
+
+.light-icon {
+  font-size: 18px;
+  user-select: none;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  z-index: 3;
+}
+
 /* Ensure the brick pattern shows properly over colored backgrounds */
 .grid-cell[style*="background-color"] .cell-icon {
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
@@ -401,4 +430,39 @@
 
 .exit-interactive-btn:hover {
   background-color: rgba(0, 0, 0, 0.9);
+}
+
+/* Layer tab styles */
+.layer-tabs {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.layer-tab {
+  padding: 8px 15px;
+  background-color: #3a3a3a;
+  border: 1px solid #555;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #e0e0e0;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: all 0.2s ease;
+}
+
+.layer-tab:hover {
+  background-color: #4a4a4a;
+}
+
+.layer-tab.active {
+  background-color: #0078d7;
+  border-color: #0078d7;
+}
+
+.layer-tab.walls-tab.active {
+  background-color: #0078d7;
+}
+
+.layer-tab.lights-tab.active {
+  background-color: #f5a623;
 } 
