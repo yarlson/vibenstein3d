@@ -401,9 +401,13 @@ export class Enemy extends Animal {
     const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
     bullet.position.copy(position);
     this.scene.add(bullet);
+
+    // Set bullet properties with damage from enemy
+    const bulletDamage = this.damage;
+
     bullet.userData = {
       velocity: direction.clone().multiplyScalar(this.bulletSpeed),
-      damage: this.damage,
+      damage: bulletDamage,
       lifetime: 0,
       maxLifetime: 5,
       createdBy: 'enemy',
@@ -467,25 +471,28 @@ export class Enemy extends Animal {
     const playerPosition = usePlayerStore.getState().playerPosition;
     if (!playerPosition) return false;
 
-    const distance = bullet.position.distanceTo(
-      new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2])
-    );
+    const bulletPosition = bullet.position.clone();
+    const playerVector = new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
+    const distance = bulletPosition.distanceTo(playerVector);
 
-    if (distance < 0.5) {
+    // Increase the collision threshold to account for player radius (0.5)
+    // plus some buffer to make hits more reliable
+    if (distance < 1.0) {
       // Remove bullet
       this.bullets = this.bullets.filter((b) => b !== bullet);
       if (bullet.parent) {
         bullet.parent.remove(bullet);
       }
 
-      // Damage player
+      // Damage player - Get the damage value with fallback
+      const bulletDamage = bullet.userData.damage || this.damage;
       const takeDamage = usePlayerStore.getState().takeDamage;
-      takeDamage(bullet.userData.damage);
-      this.createBloodEffect(
-        new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2])
-      );
+      takeDamage(bulletDamage);
 
-      // Use the triggerCameraShake function from EnemyController
+      // Create blood effect
+      this.createBloodEffect(playerVector);
+
+      // Trigger camera shake
       triggerCameraShake(0.5);
 
       return true;
