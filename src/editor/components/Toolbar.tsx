@@ -26,12 +26,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   // Get button background color based on cell type
   const getButtonBackgroundColor = (cellType: number): string => {
     switch (cellType) {
-      case CellType.WallRed: return '#b22222'; // Wall Red
-      case CellType.WallBlue: return '#2a4d69'; // Wall Blue
-      case CellType.WallGreen: return '#228B22'; // Wall Green
-      case CellType.WallYellow: return '#b8860b'; // Wall Yellow
-      case CellType.WallPurple: return '#6a0dad'; // Wall Purple
-      default: return '';
+      case CellType.WallRed:
+        return '#b22222'; // Wall Red
+      case CellType.WallBlue:
+        return '#2a4d69'; // Wall Blue
+      case CellType.WallGreen:
+        return '#228B22'; // Wall Green
+      case CellType.WallYellow:
+        return '#b8860b'; // Wall Yellow
+      case CellType.WallPurple:
+        return '#6a0dad'; // Wall Purple
+      default:
+        return '';
     }
   };
 
@@ -40,7 +46,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div className="editor-toolbar-elements">
         {TOOLBAR_ELEMENTS.map((element) => {
           const bgColor = getButtonBackgroundColor(element.cellType);
-          
+
           return (
             <button
               key={element.id}
@@ -55,7 +61,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           );
         })}
       </div>
-      
+
       <div className="editor-toolbar-actions">
         <button
           className="toolbar-action delete"
@@ -64,7 +70,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         >
           🗑️ Delete
         </button>
-        
+
         <button
           className={`toolbar-action mode-toggle ${mode === 'advanced' ? 'advanced' : ''}`}
           onClick={onToggleMode}
@@ -77,4 +83,4 @@ const Toolbar: React.FC<ToolbarProps> = ({
   );
 };
 
-export default Toolbar; 
+export default Toolbar;

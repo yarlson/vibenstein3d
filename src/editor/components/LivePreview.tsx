@@ -19,19 +19,19 @@ interface LivePreviewProps {
  */
 const LivePreview: React.FC<LivePreviewProps> = ({ levelData }) => {
   const [isInteractive, setIsInteractive] = useState<boolean>(false);
-  
+
   // Find player spawn position
   const playerSpawnPosition = findPlayerSpawn(levelData);
-  
+
   // Toggle interactive mode
   const enableInteractive = () => {
     setIsInteractive(true);
   };
-  
+
   const disableInteractive = () => {
     setIsInteractive(false);
   };
-  
+
   // Handle escape key to exit interactive mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -39,30 +39,25 @@ const LivePreview: React.FC<LivePreviewProps> = ({ levelData }) => {
         disableInteractive();
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isInteractive]);
-  
+
   return (
     <div className="live-preview">
       <h3>Live Preview</h3>
-      
+
       <div className="preview-container">
         {!isInteractive ? (
           // Non-interactive placeholder
           <div className="preview-placeholder">
             <div className="preview-placeholder-content">
               <div className="preview-placeholder-icon">🎮</div>
-              <div className="preview-placeholder-text">
-                Level Preview
-              </div>
-              <button 
-                className="preview-interact-button"
-                onClick={enableInteractive}
-              >
+              <div className="preview-placeholder-text">Level Preview</div>
+              <button className="preview-interact-button" onClick={enableInteractive}>
                 Start Interactive Preview
               </button>
             </div>
@@ -70,13 +65,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({ levelData }) => {
         ) : (
           // Interactive game canvas
           <div className="preview-interactive">
-            <button 
-              className="exit-interactive-btn" 
-              onClick={disableInteractive}
-            >
+            <button className="exit-interactive-btn" onClick={disableInteractive}>
               Exit Preview (ESC)
             </button>
-            
+
             <Canvas
               camera={{
                 position: [0, PLAYER_HEIGHT, 5],
@@ -92,21 +84,21 @@ const LivePreview: React.FC<LivePreviewProps> = ({ levelData }) => {
               dpr={[1, 1.5]}
             >
               <AdaptiveDpr pixelated />
-              
+
               {/* Minimal ambient light */}
               <ambientLight intensity={1} />
-              
+
               {/* Physics world */}
               <Physics gravity={[0, -9.81, 0]}>
                 {/* Player with spawn position from level data */}
                 {playerSpawnPosition && <Player spawnPosition={playerSpawnPosition} />}
-                
+
                 {/* Floor */}
                 <Floor />
-                
+
                 {/* Level Grid (includes walls and ceiling with lights) */}
                 <LevelGrid level={levelData} />
-                
+
                 {/* Enemy Controller */}
                 <EnemyController level={levelData} />
               </Physics>
@@ -118,4 +110,4 @@ const LivePreview: React.FC<LivePreviewProps> = ({ levelData }) => {
   );
 };
 
-export default LivePreview; 
+export default LivePreview;

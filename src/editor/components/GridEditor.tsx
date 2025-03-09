@@ -40,14 +40,14 @@ const GridEditor: React.FC<GridEditorProps> = ({
   const [cellSize, setCellSize] = useState<number>(DEFAULT_EDITOR_CELL_SIZE);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragPosition, setDragPosition] = useState<GridPosition | null>(null);
-  
+
   const gridRef = useRef<HTMLDivElement>(null);
-  
+
   // Update grid dimensions when rows, cols, or cellSize changes
   useEffect(() => {
     onUpdateGridDimensions(rows, cols, cellSize);
   }, [rows, cols, cellSize, onUpdateGridDimensions]);
-  
+
   // Handle grid cell click
   const handleCellClick = (row: number, col: number) => {
     if (selectedElement) {
@@ -56,7 +56,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
       onSelectGridElement({ row, col });
     }
   };
-  
+
   // Handle drag start
   const handleDragStart = (row: number, col: number) => {
     if (selectedPosition && selectedPosition.row === row && selectedPosition.col === col) {
@@ -64,14 +64,14 @@ const GridEditor: React.FC<GridEditorProps> = ({
       setDragPosition({ row, col });
     }
   };
-  
+
   // Handle drag over
   const handleDragOver = (row: number, col: number) => {
     if (isDragging && dragPosition) {
       setDragPosition({ row, col });
     }
   };
-  
+
   // Handle drag end
   const handleDragEnd = () => {
     if (isDragging && dragPosition && selectedPosition) {
@@ -80,47 +80,72 @@ const GridEditor: React.FC<GridEditorProps> = ({
       setDragPosition(null);
     }
   };
-  
+
   // Get cell color based on cell type
   const getCellColor = (cellType: number): string => {
     // Map cell types to colors
     switch (cellType) {
-      case 0: return '#f0f0f0'; // Empty
-      case 1: return '#6e6658'; // Wall
-      case 11: return '#b22222'; // Wall Red
-      case 12: return '#2a4d69'; // Wall Blue
-      case 13: return '#228B22'; // Wall Green
-      case 14: return '#b8860b'; // Wall Yellow
-      case 15: return '#6a0dad'; // Wall Purple
-      case 2: return '#a0522d'; // Door
-      case 3: return '#ffd700'; // Key
-      case 4: return '#00bfff'; // Player Spawn
-      case 5: return '#ff4500'; // Enemy Spawn
-      default: return '#f0f0f0';
+      case 0:
+        return '#f0f0f0'; // Empty
+      case 1:
+        return '#6e6658'; // Wall
+      case 11:
+        return '#b22222'; // Wall Red
+      case 12:
+        return '#2a4d69'; // Wall Blue
+      case 13:
+        return '#228B22'; // Wall Green
+      case 14:
+        return '#b8860b'; // Wall Yellow
+      case 15:
+        return '#6a0dad'; // Wall Purple
+      case 2:
+        return '#a0522d'; // Door
+      case 3:
+        return '#ffd700'; // Key
+      case 4:
+        return '#00bfff'; // Player Spawn
+      case 5:
+        return '#ff4500'; // Enemy Spawn
+      default:
+        return '#f0f0f0';
     }
   };
-  
+
   // Get cell icon based on cell type
   const getCellIcon = (cellType: number): string => {
     // Map cell types to icons - ensure consistency with toolbar icons
     switch (cellType) {
-      case 0: return ''; // Empty
-      case 1: return '🧱'; // Wall
-      case 11: return '🧱'; // Wall Red
-      case 12: return '🧱'; // Wall Blue
-      case 13: return '🧱'; // Wall Green
-      case 14: return '🧱'; // Wall Yellow
-      case 15: return '🧱'; // Wall Purple
-      case 2: return '🚪'; // Door
-      case 3: return '🔑'; // Key
-      case 4: return '👤'; // Player Spawn
-      case 5: return '👹'; // Enemy Spawn
+      case 0:
+        return ''; // Empty
+      case 1:
+        return '🧱'; // Wall
+      case 11:
+        return '🧱'; // Wall Red
+      case 12:
+        return '🧱'; // Wall Blue
+      case 13:
+        return '🧱'; // Wall Green
+      case 14:
+        return '🧱'; // Wall Yellow
+      case 15:
+        return '🧱'; // Wall Purple
+      case 2:
+        return '🚪'; // Door
+      case 3:
+        return '🔑'; // Key
+      case 4:
+        return '👤'; // Player Spawn
+      case 5:
+        return '👹'; // Enemy Spawn
       case 6:
-      case 10: return '💡'; // Light
-      default: return '';
+      case 10:
+        return '💡'; // Light
+      default:
+        return '';
     }
   };
-  
+
   return (
     <div className="grid-editor">
       <div className="grid-controls">
@@ -136,7 +161,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
             />
           </label>
         </div>
-        
+
         <div className="grid-dimension-control">
           <label>
             Columns:
@@ -149,7 +174,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
             />
           </label>
         </div>
-        
+
         <div className="grid-dimension-control">
           <label>
             Cell Size:
@@ -164,24 +189,24 @@ const GridEditor: React.FC<GridEditorProps> = ({
           </label>
         </div>
       </div>
-      
-      <div 
-        className="grid" 
+
+      <div
+        className="grid"
         ref={gridRef}
         style={{
           gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
           gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
         }}
       >
-        {levelData.grid.map((row, rowIndex) => 
+        {levelData.grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const cellIcon = getCellIcon(cell);
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`grid-cell ${
-                  selectedPosition && 
-                  selectedPosition.row === rowIndex && 
+                  selectedPosition &&
+                  selectedPosition.row === rowIndex &&
                   selectedPosition.col === colIndex
                     ? 'selected'
                     : ''
@@ -205,7 +230,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
           })
         )}
       </div>
-      
+
       <div className="grid-info">
         <p>
           Grid Size: {rows} × {cols} (Cells)
@@ -220,4 +245,4 @@ const GridEditor: React.FC<GridEditorProps> = ({
   );
 };
 
-export default GridEditor; 
+export default GridEditor;

@@ -11,7 +11,7 @@ export const useLevelData = (initialLevelPath?: string) => {
   const [levelData, setLevelData] = useState<LevelData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Load the initial level data
   useEffect(() => {
     if (initialLevelPath) {
@@ -21,7 +21,7 @@ export const useLevelData = (initialLevelPath?: string) => {
       setLevelData(createEmptyLevel());
     }
   }, [initialLevelPath]);
-  
+
   /**
    * Load a level from the given path
    * @param path Path to the level JSON file
@@ -29,7 +29,7 @@ export const useLevelData = (initialLevelPath?: string) => {
   const loadLevel = async (path: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const data = await loadLevelData(path);
       setLevelData(data);
@@ -40,7 +40,7 @@ export const useLevelData = (initialLevelPath?: string) => {
       setIsLoading(false);
     }
   };
-  
+
   /**
    * Create a new empty level
    * @param rows Number of rows
@@ -50,7 +50,7 @@ export const useLevelData = (initialLevelPath?: string) => {
     setLevelData(createEmptyLevel(rows, cols));
     setError(null);
   };
-  
+
   /**
    * Update the level data
    * @param updatedData The updated level data
@@ -58,7 +58,7 @@ export const useLevelData = (initialLevelPath?: string) => {
   const updateLevelData = (updatedData: LevelData) => {
     setLevelData(updatedData);
   };
-  
+
   /**
    * Update a specific part of the level data
    * @param key The key to update
@@ -68,11 +68,11 @@ export const useLevelData = (initialLevelPath?: string) => {
     if (levelData) {
       setLevelData({
         ...levelData,
-        [key]: value
+        [key]: value,
       });
     }
   };
-  
+
   return {
     levelData,
     isLoading,
@@ -80,6 +80,6 @@ export const useLevelData = (initialLevelPath?: string) => {
     loadLevel,
     createNewLevel,
     updateLevelData,
-    updateLevelPart
+    updateLevelPart,
   };
-}; 
+};

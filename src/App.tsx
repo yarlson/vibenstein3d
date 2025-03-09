@@ -25,7 +25,7 @@ function App() {
             </div>
           }
         />
-        
+
         {/* Editor Route */}
         <Route
           path="/editor"
@@ -35,7 +35,7 @@ function App() {
             </React.Suspense>
           }
         />
-        
+
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

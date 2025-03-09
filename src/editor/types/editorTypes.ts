@@ -23,4 +23,4 @@ export const TOOLBAR_ELEMENTS: ToolbarElementType[] = [
 ];
 
 // Mode types for the editor
-export type EditorMode = 'standard' | 'advanced'; 
+export type EditorMode = 'standard' | 'advanced';
