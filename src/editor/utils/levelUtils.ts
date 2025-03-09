@@ -24,27 +24,30 @@ export const loadLevelData = async (filePath: string): Promise<LevelData> => {
 };
 
 /**
- * Save level data to a file
+ * Save level data to a file with custom formatting
  * @param levelData The level data to save
  * @param filename The filename to save to
  */
 export const saveLevelData = (levelData: LevelData, filename: string): void => {
   try {
-    // Create a Blob with the JSON data
-    const blob = new Blob([JSON.stringify(levelData, null, 2)], { type: 'application/json' });
-
+    // Create a formatted JSON string
+    const formattedJson = formatLevelData(levelData);
+    
+    // Create a Blob with the formatted JSON data
+    const blob = new Blob([formattedJson], { type: 'application/json' });
+    
     // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
-
+    
     // Create a temporary anchor element
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
-
+    
     // Trigger the download
     document.body.appendChild(link);
     link.click();
-
+    
     // Clean up
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
@@ -53,6 +56,44 @@ export const saveLevelData = (levelData: LevelData, filename: string): void => {
     throw error;
   }
 };
+
+/**
+ * Format level data with compact, readable formatting for grid arrays
+ * @param levelData The level data to format
+ * @returns Formatted JSON string
+ */
+function formatLevelData(levelData: LevelData): string {
+  // Deep clone the level data to avoid modifying the original
+  const clonedData = JSON.parse(JSON.stringify(levelData));
+  
+  // Format the grid and lights arrays
+  let result = "{\n";
+  
+  // Add the name property
+  result += `  "name": ${JSON.stringify(clonedData.name)},\n`;
+  
+  // Format the grid property with custom formatting
+  result += '  "grid": [\n';
+  if (clonedData.grid && clonedData.grid.length > 0) {
+    result += clonedData.grid.map((row: number[]) => `    [${row.join(', ')}]`).join(',\n');
+  }
+  result += '\n  ],\n';
+  
+  // Format the lights property with custom formatting
+  result += '  "lights": [\n';
+  if (clonedData.lights && clonedData.lights.length > 0) {
+    result += clonedData.lights.map((row: number[]) => `    [${row.join(', ')}]`).join(',\n');
+  }
+  result += '\n  ],\n';
+  
+  // Format the enemies array with standard JSON formatting
+  result += `  "enemies": ${JSON.stringify(clonedData.enemies, null, 2).split('\n').join('\n  ')}`;
+  
+  // Close the object
+  result += '\n}';
+  
+  return result;
+}
 
 /**
  * Create a new empty level with default values
