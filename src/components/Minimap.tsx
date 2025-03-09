@@ -1,7 +1,7 @@
-import React, {useEffect, useRef} from 'react';
-import {usePlayerStore} from '../state/playerStore';
+import React, { useEffect, useRef } from 'react';
+import { usePlayerStore } from '../state/playerStore';
 import levelDataJson from '../levels/level1.json';
-import {CELL_SIZE, CellType} from '../types/level';
+import { CELL_SIZE, CellType } from '../types/level';
 
 // Map colors for different cell types
 const CELL_COLORS = {

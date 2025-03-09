@@ -7,7 +7,7 @@ import { LevelGrid } from '../components/LevelGrid';
 import { AdaptiveDpr, Stats } from '@react-three/drei';
 import { LevelData } from '../types/level';
 import { EnemyController } from '../components/EnemyController.tsx';
-import { findPlayerSpawn } from '../utils/levelUtils';
+import { findPlayerSpawn, calculateLevelDimensions } from '../utils/levelUtils';
 // Import level data directly
 import levelDataJson from '../levels/level1.json';
 
@@ -21,6 +21,12 @@ export const Scene = () => {
   useEffect(() => {
     // Set the imported JSON data directly
     const data = levelDataJson as LevelData;
+
+    // Calculate dimensions if not already present
+    if (!data.dimensions) {
+      data.dimensions = calculateLevelDimensions(data);
+    }
+
     setLevelData(data);
 
     // Find player spawn point immediately
@@ -82,8 +88,8 @@ export const Scene = () => {
         {/* Player with spawn position from level data */}
         {playerSpawnPosition && <Player spawnPosition={playerSpawnPosition} />}
 
-        {/* Floor */}
-        <Floor />
+        {/* Floor - now passing level dimensions */}
+        <Floor dimensions={levelData.dimensions} />
 
         {/* Level Grid (includes walls and ceiling with lights) */}
         <LevelGrid level={levelData} onPlayerSpawnFound={handlePlayerSpawnFound} />
