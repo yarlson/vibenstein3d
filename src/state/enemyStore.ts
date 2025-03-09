@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as THREE from 'three';
 import { Enemy } from '../entities/Enemy';
-import { LevelData, EnemySpawn } from '../types/level';
+import { LevelData, EnemySpawn, CELL_SIZE } from '../types/level';
 import { useGameStore } from './gameStore';
 
 export interface EnemyType {
@@ -28,7 +28,12 @@ interface EnemyState {
 
   // New functions from EnemyManager
   initializeEnemies: (level: LevelData, scene: THREE.Scene, camera: THREE.Camera) => void;
-  spawnEnemy: (spawnData: EnemySpawn, scene: THREE.Scene, camera: THREE.Camera) => void;
+  spawnEnemy: (
+    spawnData: EnemySpawn,
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    level?: LevelData
+  ) => void;
   updateEnemies: (delta: number, time: number) => void;
   setWalls: (walls: THREE.Object3D[]) => void;
   cleanupEnemies: (isFullUnmount?: boolean) => void;
@@ -115,18 +120,38 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
 
     // Spawn enemies from level data
     level.enemies.forEach((spawnData) => {
-      get().spawnEnemy(spawnData, scene, camera);
+      get().spawnEnemy(spawnData, scene, camera, level);
     });
 
     set({ initialized: true });
   },
 
-  spawnEnemy: (spawnData: EnemySpawn, scene: THREE.Scene, camera: THREE.Camera) => {
+  spawnEnemy: (
+    spawnData: EnemySpawn,
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    level?: LevelData
+  ) => {
     const [x, z] = spawnData.position;
+
+    // Calculate grid dimensions if we have level data
+    let gridWidth = 10; // Default fallback
+    let gridHeight = 10; // Default fallback
+
+    if (level && level.grid) {
+      gridWidth = level.grid[0].length;
+      gridHeight = level.grid.length;
+    }
+
+    // Calculate world coordinates using the correct transformation
+    const worldX = (x - gridWidth / 2) * CELL_SIZE;
+    const worldZ = (z - gridHeight / 2) * CELL_SIZE;
+
+    // Create enemy instance with correct position
     const position = new THREE.Vector3(
-      x - 5, // Adjust for level grid offset
+      worldX,
       0.5, // Half height above ground
-      z - 5 // Adjust for level grid offset
+      worldZ
     );
 
     // Create enemy instance

@@ -37,47 +37,55 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
   }
 
   const { row, col } = selectedPosition;
-  
+
   // Get cell type from the appropriate layer
   const cellType = levelData.grid[row][col];
-  
+
   // Get light type if available
-  const lightType = levelData.lights && 
-                   levelData.lights[row] !== undefined && 
-                   levelData.lights[row][col] !== undefined ? 
-                   levelData.lights[row][col] : 0;
-  
+  const lightType =
+    levelData.lights &&
+    levelData.lights[row] !== undefined &&
+    levelData.lights[row][col] !== undefined
+      ? levelData.lights[row][col]
+      : 0;
+
   // Find if there's an enemy at this position
   const enemyIndex = levelData.enemies.findIndex(
     (enemy) => enemy.position[0] === col && enemy.position[1] === row
   );
-  
+
   const hasEnemy = enemyIndex !== -1;
   const enemy = hasEnemy ? levelData.enemies[enemyIndex] : null;
-  
+
   // Light type descriptions
   const getLightTypeDescription = (type: number): string => {
-    switch(type) {
-      case 0: return 'No Light';
-      case 1: return 'Warm Light';
-      case 2: return 'Cool Light';
-      case 3: return 'Bright Light';
-      case 4: return 'Dim Light';
-      default: return 'Unknown';
+    switch (type) {
+      case 0:
+        return 'No Light';
+      case 1:
+        return 'Warm Light';
+      case 2:
+        return 'Cool Light';
+      case 3:
+        return 'Bright Light';
+      case 4:
+        return 'Dim Light';
+      default:
+        return 'Unknown';
     }
   };
-  
+
   return (
     <div className="property-editor">
       <h3>Properties</h3>
-      
+
       <div className="property-section">
         <h4>{currentLayer === 'walls' ? 'Cell Information' : 'Light Information'}</h4>
         <div className="property-row">
           <label>Position:</label>
           <span>{`(${col}, ${row})`}</span>
         </div>
-        
+
         {currentLayer === 'walls' ? (
           <div className="property-row">
             <label>Cell Type:</label>
@@ -86,13 +94,11 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
         ) : (
           <div className="property-row">
             <label>Light Type:</label>
-            <select 
+            <select
               value={lightType}
-              onChange={(e) => onUpdateProperty(
-                selectedPosition, 
-                'light', 
-                parseInt(e.target.value, 10)
-              )}
+              onChange={(e) =>
+                onUpdateProperty(selectedPosition, 'light', parseInt(e.target.value, 10))
+              }
             >
               <option value="0">No Light</option>
               <option value="1">Warm Light</option>
@@ -103,7 +109,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
           </div>
         )}
       </div>
-      
+
       {/* Only show these sections in walls layer */}
       {currentLayer === 'walls' && (
         <>
@@ -111,17 +117,17 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
           {cellType === CellType.EnemySpawn && (
             <div className="property-section">
               <h4>Enemy Properties</h4>
-              
+
               {!hasEnemy && (
                 <div className="property-row">
-                  <button 
+                  <button
                     onClick={() => onAddEnemy(selectedPosition, EnemyType.Grunt)}
                     className="add-enemy-btn"
                   >
                     Add Enemy
                   </button>
-                  
-                  <select 
+
+                  <select
                     onChange={(e) => onAddEnemy(selectedPosition, e.target.value as EnemyType)}
                     defaultValue={EnemyType.Grunt}
                   >
@@ -131,36 +137,37 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
                   </select>
                 </div>
               )}
-              
+
               {hasEnemy && enemy && (
                 <>
                   <div className="property-row">
                     <label>Type:</label>
-                    <select 
+                    <select
                       value={enemy.type}
-                      onChange={(e) => onUpdateEnemyProperty(enemyIndex, 'type', e.target.value as EnemyType)}
+                      onChange={(e) =>
+                        onUpdateEnemyProperty(enemyIndex, 'type', e.target.value as EnemyType)
+                      }
                     >
                       <option value={EnemyType.Grunt}>Grunt</option>
                       <option value={EnemyType.Guard}>Guard</option>
                       <option value={EnemyType.Boss}>Boss</option>
                     </select>
                   </div>
-                  
+
                   <div className="property-row">
                     <label>Rotation:</label>
-                    <input 
+                    <input
                       type="number"
                       step="0.1"
                       value={enemy.rotation || 0}
-                      onChange={(e) => onUpdateEnemyProperty(enemyIndex, 'rotation', parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        onUpdateEnemyProperty(enemyIndex, 'rotation', parseFloat(e.target.value))
+                      }
                     />
                   </div>
-                  
+
                   <div className="property-row">
-                    <button 
-                      onClick={() => onDeleteEnemy(enemyIndex)}
-                      className="delete-enemy-btn"
-                    >
+                    <button onClick={() => onDeleteEnemy(enemyIndex)} className="delete-enemy-btn">
                       Delete Enemy
                     </button>
                   </div>
@@ -170,7 +177,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
           )}
         </>
       )}
-      
+
       {/* Light details */}
       {currentLayer === 'lights' && lightType > 0 && (
         <div className="property-section">
@@ -179,32 +186,44 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({
             <label>Type:</label>
             <span>{getLightTypeDescription(lightType)}</span>
           </div>
-          
+
           <div className="property-row">
             <label>Intensity:</label>
             <span>{lightType === 3 ? 'High' : lightType === 4 ? 'Low' : 'Medium'}</span>
           </div>
-          
+
           <div className="property-row">
             <label>Color:</label>
-            <span style={{
-              display: 'inline-block', 
-              width: '16px', 
-              height: '16px', 
-              backgroundColor: 
-                lightType === 1 ? '#ffaa55' : 
-                lightType === 2 ? '#aaddff' : 
-                lightType === 3 ? '#ffffff' : 
-                lightType === 4 ? '#ffddcc' : 'transparent',
-              border: '1px solid #555',
-              verticalAlign: 'middle',
-              marginLeft: '5px'
-            }}></span>
+            <span
+              style={{
+                display: 'inline-block',
+                width: '16px',
+                height: '16px',
+                backgroundColor:
+                  lightType === 1
+                    ? '#ffaa55'
+                    : lightType === 2
+                      ? '#aaddff'
+                      : lightType === 3
+                        ? '#ffffff'
+                        : lightType === 4
+                          ? '#ffddcc'
+                          : 'transparent',
+                border: '1px solid #555',
+                verticalAlign: 'middle',
+                marginLeft: '5px',
+              }}
+            ></span>
             <span>
-              {lightType === 1 ? 'Warm' : 
-               lightType === 2 ? 'Cool' : 
-               lightType === 3 ? 'White' : 
-               lightType === 4 ? 'Dim' : ''}
+              {lightType === 1
+                ? 'Warm'
+                : lightType === 2
+                  ? 'Cool'
+                  : lightType === 3
+                    ? 'White'
+                    : lightType === 4
+                      ? 'Dim'
+                      : ''}
             </span>
           </div>
         </div>

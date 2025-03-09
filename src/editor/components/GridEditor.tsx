@@ -179,12 +179,13 @@ const GridEditor: React.FC<GridEditorProps> = ({
   const getLayerData = (row: number, col: number) => {
     // Get wall/grid cell type
     const cellType = levelData.grid[row][col];
-    
+
     // Get light type (if lights exist)
-    const lightType = levelData.lights && levelData.lights[row] && levelData.lights[row][col]
-      ? levelData.lights[row][col]
-      : 0;
-      
+    const lightType =
+      levelData.lights && levelData.lights[row] && levelData.lights[row][col]
+        ? levelData.lights[row][col]
+        : 0;
+
     return { cellType, lightType };
   };
 
@@ -241,11 +242,11 @@ const GridEditor: React.FC<GridEditorProps> = ({
         }}
       >
         {levelData.grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
+          row.map((_cell, colIndex) => {
             const { cellType, lightType } = getLayerData(rowIndex, colIndex);
             const wallIcon = getCellIcon(cellType);
             const lightIcon = getLightIcon(lightType);
-            
+
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -269,9 +270,9 @@ const GridEditor: React.FC<GridEditorProps> = ({
               >
                 {/* Wall layer */}
                 {wallIcon && <span className="cell-icon wall-icon">{wallIcon}</span>}
-                
+
                 {/* Light layer - semi-transparent overlay */}
-                <div 
+                <div
                   className="light-overlay"
                   style={{
                     backgroundColor: getLightColor(lightType),
@@ -280,7 +281,7 @@ const GridEditor: React.FC<GridEditorProps> = ({
                 >
                   {lightIcon && <span className="light-icon">{lightIcon}</span>}
                 </div>
-                
+
                 {/* Show coordinates in dev mode */}
                 <span className="cell-coords">{`${rowIndex},${colIndex}`}</span>
               </div>

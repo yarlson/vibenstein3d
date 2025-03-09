@@ -77,9 +77,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setCurrentLayer: (layer: EditorLayer) => {
     // Clear selected element when changing layers
-    set({ 
+    set({
       currentLayer: layer,
-      selectedElement: null
+      selectedElement: null,
     });
   },
 

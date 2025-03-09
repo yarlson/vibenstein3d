@@ -7,7 +7,12 @@ import LivePreview from './components/LivePreview';
 import { useEditorStore } from './store/editorStore';
 import { loadLevelData, saveLevelData } from './utils/levelUtils';
 import { EnemyType } from '../types/level';
-import { ToolbarElementType, TOOLBAR_ELEMENTS, LIGHT_ELEMENTS, EditorLayer } from './types/editorTypes';
+import {
+  ToolbarElementType,
+  TOOLBAR_ELEMENTS,
+  LIGHT_ELEMENTS,
+  EditorLayer,
+} from './types/editorTypes';
 import './Editor.css';
 
 /**
@@ -232,7 +237,7 @@ const Editor: React.FC = () => {
             >
               Walls & Objects
             </button>
-            
+
             <button
               className={`layer-tab lights-tab ${currentLayer === 'lights' ? 'active' : ''}`}
               onClick={() => handleLayerChange('lights')}
@@ -240,7 +245,7 @@ const Editor: React.FC = () => {
               Lights
             </button>
           </div>
-          
+
           {/* Toolbar for the current layer */}
           <Toolbar
             selectedElement={selectedElement}
@@ -250,7 +255,7 @@ const Editor: React.FC = () => {
             onToggleMode={handleToggleMode}
             elements={toolbarElements}
           />
-          
+
           <div className="editor-workspace">
             <GridEditor
               levelData={levelData}
@@ -262,7 +267,7 @@ const Editor: React.FC = () => {
               onUpdateGridDimensions={updateGridDimensions}
               currentLayer={currentLayer}
             />
-            
+
             <PropertyEditor
               levelData={levelData}
               selectedPosition={selectedPosition}
