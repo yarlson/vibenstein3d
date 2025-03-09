@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import { Wall } from './Wall';
 import { Ceiling } from './Ceiling';
 import { LevelData, CellType, CELL_SIZE, WALL_HEIGHT } from '../types/level';
+import { findPlayerSpawn, calculateLevelDimensions } from '../utils/levelUtils';
 
 interface LevelGridProps {
   level: LevelData;
+  onPlayerSpawnFound?: (spawnPosition: [number, number]) => void;
 }
 
 // Light configuration type
@@ -57,20 +59,22 @@ const WALL_COLORS: {
   [CellType.WallPurple]: '#6a0dad', // Deep purple
 };
 
-export const LevelGrid = ({ level }: LevelGridProps) => {
+export const LevelGrid = ({ level, onPlayerSpawnFound }: LevelGridProps) => {
+  // Find the player spawn position by scanning the grid for PlayerSpawn cell type
+  const playerSpawn = useMemo(() => {
+    return findPlayerSpawn(level);
+  }, [level]);
+
+  // Notify parent component of player spawn position if callback is provided
+  useMemo(() => {
+    if (onPlayerSpawnFound) {
+      onPlayerSpawnFound(playerSpawn);
+    }
+  }, [playerSpawn, onPlayerSpawnFound]);
+
   // Calculate level dimensions if not already provided
   const levelDimensions = useMemo(() => {
-    // Use level's dimensions if available
-    if (level.dimensions) {
-      return level.dimensions;
-    }
-
-    // Otherwise calculate from grid size
-    return {
-      width: level.grid[0].length * CELL_SIZE,
-      height: WALL_HEIGHT,
-      depth: level.grid.length * CELL_SIZE,
-    };
+    return calculateLevelDimensions(level);
   }, [level]);
 
   // Memoize the wall positions to avoid recalculating every frame

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { usePlayerStore } from '../state/playerStore';
-import { level1 } from '../levels/level1';
+import levelDataJson from '../levels/level1.json';
 import { CELL_SIZE, CellType } from '../types/level';
 
 // Map colors for different cell types
@@ -25,8 +25,8 @@ export const Minimap: React.FC = () => {
 
   // Convert world coordinates to minimap coordinates
   const worldToMinimap = (x: number, z: number, canvasSize: number) => {
-    const gridWidth = level1.grid[0].length;
-    const gridHeight = level1.grid.length;
+    const gridWidth = levelDataJson.grid[0].length;
+    const gridHeight = levelDataJson.grid.length;
 
     // Convert world coordinates to grid coordinates using the actual grid dimensions
     const gridX = Math.floor(x / CELL_SIZE + gridWidth / 2);
@@ -48,14 +48,14 @@ export const Minimap: React.FC = () => {
     if (!ctx) return;
 
     const canvasSize = canvas.width;
-    const cellSize = canvasSize / level1.grid[0].length;
+    const cellSize = canvasSize / levelDataJson.grid[0].length;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
     // Draw level
-    level1.grid.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
+    levelDataJson.grid.forEach((row: number[], rowIndex: number) => {
+      row.forEach((cell: number, colIndex: number) => {
         const color = CELL_COLORS[cell as keyof typeof CELL_COLORS] || '#333';
 
         ctx.fillStyle = color;

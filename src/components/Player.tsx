@@ -6,7 +6,7 @@ import { PointerLockControls } from '@react-three/drei';
 import { CELL_SIZE } from '../types/level';
 import { Weapon } from './Weapon';
 import { usePlayerStore } from '../state/playerStore';
-import { level1 } from '../levels/level1';
+import levelDataJson from '../levels/level1.json';
 
 const MOVE_SPEED = 10;
 export const PLAYER_HEIGHT = 1.8;
@@ -20,8 +20,8 @@ interface PlayerProps {
 
 export const Player = ({ spawnPosition = [0, 0] }: PlayerProps) => {
   // Calculate grid dimensions from level data
-  const gridWidth = level1.grid[0].length;
-  const gridHeight = level1.grid.length;
+  const gridWidth = levelDataJson.grid[0].length;
+  const gridHeight = levelDataJson.grid.length;
   // Adjust spawn position so that (0,0) is at the center of the level grid.
   const worldX = (spawnPosition[0] - gridWidth / 2) * CELL_SIZE;
   const worldZ = (spawnPosition[1] - gridHeight / 2) * CELL_SIZE;

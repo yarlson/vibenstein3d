@@ -15,12 +15,12 @@ interface WallProps {
 }
 
 export const Wall = ({
-                       position,
-                       size = [1, WALL_HEIGHT, 1],
-                       color = '#553222',
-                       topColor,
-                       bottomColor,
-                     }: WallProps) => {
+  position,
+  size = [1, WALL_HEIGHT, 1],
+  color = '#553222',
+  topColor,
+  bottomColor,
+}: WallProps) => {
   // Get the add/remove wall functions from gameStore
   const { addWall, removeWall } = useGameStore();
 
@@ -57,19 +57,21 @@ export const Wall = ({
       shader.uniforms.bottomColor = { value: computedBottomColor };
 
       // Inject a varying to pass the vertex's y coordinate to the fragment shader
-      shader.vertexShader = `
+      shader.vertexShader =
+        `
         varying float vY;
       ` + shader.vertexShader;
 
       // Replace the vertex transform to capture the local y coordinate
       shader.vertexShader = shader.vertexShader.replace(
-          `#include <begin_vertex>`,
-          `#include <begin_vertex>
+        `#include <begin_vertex>`,
+        `#include <begin_vertex>
           vY = transformed.y;`
       );
 
       // Add uniforms and varying declaration in the fragment shader
-      shader.fragmentShader = `
+      shader.fragmentShader =
+        `
         uniform vec3 topColor;
         uniform vec3 bottomColor;
         varying float vY;
@@ -78,8 +80,8 @@ export const Wall = ({
       // Replace the default diffuse assignment with a mix between bottomColor and topColor.
       // We map vY from -size[1]/2 to size[1]/2 to a 0-1 range.
       shader.fragmentShader = shader.fragmentShader.replace(
-          `vec4 diffuseColor = vec4( diffuse, opacity );`,
-          `
+        `vec4 diffuseColor = vec4( diffuse, opacity );`,
+        `
         float mixFactor = smoothstep(-${(size[1] / 2).toFixed(2)}, ${(size[1] / 2).toFixed(2)}, vY);
         vec3 gradColor = mix(bottomColor, topColor, mixFactor);
         vec4 diffuseColor = vec4(gradColor, opacity);
@@ -100,9 +102,9 @@ export const Wall = ({
   }, [ref, addWall, removeWall]);
 
   return (
-      <mesh ref={ref} castShadow receiveShadow>
-        <boxGeometry args={size} />
-        <primitive object={gradientMaterial} attach="material" />
-      </mesh>
+    <mesh ref={ref} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      <primitive object={gradientMaterial} attach="material" />
+    </mesh>
   );
 };
